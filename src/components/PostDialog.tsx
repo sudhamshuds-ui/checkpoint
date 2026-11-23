@@ -63,7 +63,7 @@ export function PostDialog() {
   return (
     <Dialog.Root open={Boolean(openPostId)} onOpenChange={(open) => !open && openPost(null)}>
       <Dialog.Portal>
-        <Dialog.Backdrop className="fixed inset-0 z-40 bg-black/[0.72] transition-opacity duration-200 data-[ending-style]:opacity-0 data-[ending-style]:duration-150 data-[starting-style]:opacity-0" />
+        <Dialog.Backdrop className="fixed inset-0 z-40 bg-black/95 transition-opacity duration-200 data-[ending-style]:opacity-0 data-[ending-style]:duration-150 data-[starting-style]:opacity-0" />
         <Dialog.Popup className="fixed inset-2 z-40 outline-none transition-[scale,opacity] duration-200 ease-[var(--ease-out)] data-[ending-style]:scale-[0.98] data-[ending-style]:opacity-0 data-[ending-style]:duration-150 data-[starting-style]:scale-[0.98] data-[starting-style]:opacity-0 md:inset-auto md:top-1/2 md:left-1/2 md:h-[min(720px,calc(100dvh-64px))] md:w-[min(1040px,calc(100vw-176px))] md:-translate-x-1/2 md:-translate-y-1/2">
           {post && (
             <>
@@ -143,7 +143,7 @@ function PostArrow({ side, onClick }: { side: 'left' | 'right'; onClick: () => v
       type="button"
       onClick={onClick}
       aria-label={side === 'left' ? 'Previous post' : 'Next post'}
-      className={`press absolute top-1/2 hidden size-12 -translate-y-1/2 items-center justify-center rounded-full border border-line bg-surface text-ink hover:bg-sunken md:flex ${side === 'left' ? '-left-16' : '-right-16'}`}
+      className={`press absolute top-1/2 hidden size-12 -translate-y-1/2 items-center justify-center rounded-full border border-white/10 bg-sunken text-ink hover:bg-line md:flex ${side === 'left' ? '-left-16' : '-right-16'}`}
     >
       <Icon size={20} />
     </button>

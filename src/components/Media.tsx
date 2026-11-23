@@ -6,7 +6,7 @@ import type { Media } from '@/lib/types';
 
 interface Props {
   media: Media;
-  /** Cards play video muted while hovered; the detail view plays it with sound and shows controls. */
+  /** Videos are always muted to start. Cards play while hovered; the detail view plays on open and shows controls to unmute. */
   mode: 'card' | 'detail';
   playing?: boolean;
   className?: string;
@@ -29,16 +29,12 @@ export function MediaView({ media, mode, playing = false, className, fallbackHre
     else video.pause();
   }, [playing, mode]);
 
-  // An opened video starts playing with sound (opening it was a click). If the browser still
-  // refuses sound, it plays muted and the controls are there to unmute.
+  // An opened video starts playing straight away, muted. The controls are there to unmute.
   useEffect(() => {
     const video = videoRef.current;
     if (!video || mode !== 'detail' || media.type !== 'video') return;
-    video.play().catch((err: unknown) => {
-      if ((err as Error)?.name !== 'NotAllowedError') return;
-      video.muted = true;
-      video.play().catch(() => undefined);
-    });
+    video.muted = true;
+    video.play().catch(() => undefined);
   }, [mode, media.type, isVideo]);
 
   if (imageFailed) {
@@ -58,7 +54,7 @@ export function MediaView({ media, mode, playing = false, className, fallbackHre
         className={clsx('block h-full w-full', fit, className)}
         src={media.videoUrl}
         poster={imageUrl(media.url, mode === 'card' ? 'small' : 'large')}
-        muted={mode === 'card' || media.type === 'gif'}
+        muted
         loop={mode === 'card' || media.type === 'gif'}
         autoPlay={mode === 'detail' && media.type === 'gif'}
         controls={mode === 'detail' && media.type === 'video'}
