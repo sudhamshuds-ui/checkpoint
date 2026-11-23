@@ -30,7 +30,7 @@ export function MediaStage({ post }: { post: Post }) {
   const current = media[Math.min(index, media.length - 1)];
   return (
     <div className="relative flex h-full w-full items-center justify-center">
-      <MediaView key={current.url} media={current} mode="detail" className="max-h-full rounded-lg" />
+      <MediaView key={current.url} media={current} mode="detail" className="max-h-full rounded-lg" fallbackHref={post.url} />
       {media.length > 1 && (
         <>
           <StageButton side="left" disabled={index === 0} onClick={() => setIndex((i) => i - 1)} />

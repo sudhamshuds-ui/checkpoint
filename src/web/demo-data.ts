@@ -82,6 +82,8 @@ export function demoPosts(now = Date.now()): Post[] {
         width: w,
         height: h,
         durationMs: s.seconds ? s.seconds * 1000 : undefined,
+        // Sample videos have no file, so they show their still frame, like a video X won't serve.
+        videoUrl: s.type ? 'sample-video-unavailable.mp4' : undefined,
       });
       for (const [k, ea, eb, ec, el] of s.extra ?? []) {
         const [ew, eh] = sizeOf(k);
