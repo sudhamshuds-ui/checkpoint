@@ -304,7 +304,7 @@ function NameInput({
         onChange={(e) => setValue(e.target.value)}
         onBlur={() => (value.trim() && value !== initial ? onSubmit(value) : onCancel())}
         onKeyDown={(e) => e.key === 'Escape' && onCancel()}
-        className="h-8 w-full rounded-lg bg-surface px-2 text-sm shadow-card outline-none placeholder:text-faint focus:ring-2 focus:ring-accent/50"
+        className="mt-px h-8 w-full rounded-lg border border-accent/70 bg-sunken px-[7px] text-sm text-ink outline-none placeholder:text-faint"
       />
     </form>
   );
