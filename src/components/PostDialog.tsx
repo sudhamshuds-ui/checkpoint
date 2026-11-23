@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Dialog } from '@base-ui/react/dialog';
 import { ChevronLeft, ChevronRight, Trash2, X } from 'lucide-react';
 import { useFolders, usePost, useTags } from '@/lib/hooks';
@@ -19,9 +19,16 @@ export function PostDialog() {
   const tags = useTags();
   const [sortOpen, setSortOpen] = useState(false);
 
-  const position = openPostId ? visibleIds.indexOf(openPostId) : -1;
-  const prevId = position > 0 ? visibleIds[position - 1] : undefined;
-  const nextId = position >= 0 ? visibleIds[position + 1] : undefined;
+  const view = useUI((s) => s.view);
+  // Remember where the open post sat on the board. Once it's sorted out of the current view it no longer
+  // appears there, and its neighbours close the gap: the next post now sits at the same index.
+  const lastIndex = useRef(-1);
+  const found = openPostId ? visibleIds.indexOf(openPostId) : -1;
+  if (found !== -1) lastIndex.current = found;
+  const inView = found !== -1;
+  const at = inView ? found : lastIndex.current;
+  const prevId = at > 0 ? visibleIds[at - 1] : undefined;
+  const nextId = inView ? visibleIds[at + 1] : at >= 0 ? visibleIds[at] : undefined;
 
   // Arrow keys step through the posts on the board, like the arrows beside the modal.
   useEffect(() => {
@@ -38,6 +45,13 @@ export function PostDialog() {
   const folderNames = post ? post.folderIds.map((id) => folders.find((f) => f.id === id)?.name).filter(Boolean) : [];
   const postTags = post ? tags.filter((t) => post.tagIds.includes(t.id)) : [];
   const sortLabel = folderNames.length ? `${folderNames[0]}${folderNames.length > 1 ? ` +${folderNames.length - 1}` : ''}` : 'Sort';
+
+  /** Sorting an unsorted post from X bookmarks moves straight on to the next one. */
+  function afterSort(added: boolean) {
+    if (!added || view.kind !== 'inbox' || !post || post.folderIds.length > 0) return;
+    const following = visibleIds[at + 1] ?? (at > 0 ? visibleIds[at - 1] : undefined);
+    openPost(following ?? null);
+  }
 
   function searchTag(name: string) {
     openPost(null);
@@ -100,6 +114,7 @@ export function PostDialog() {
                       onOpenChange={setSortOpen}
                       side="top"
                       align="end"
+                      onPicked={afterSort}
                       trigger={
                         <Pill selected={sortOpen} label={folderNames.length ? `In ${folderNames.join(', ')}. Change folder` : 'Sort into a folder'}>
                           {sortLabel}

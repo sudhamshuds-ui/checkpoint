@@ -12,10 +12,12 @@ interface PopoverProps {
   onOpenChange?: (open: boolean) => void;
   side?: 'top' | 'bottom';
   align?: 'start' | 'end';
+  /** Called after a folder is picked; `added` is false when it was taken off. */
+  onPicked?: (added: boolean) => void;
 }
 
 /** Popover with a searchable folder list. Picking a folder adds or removes the post. It grows out of its trigger. */
-export function FolderPopover({ postId, trigger, open: controlled, onOpenChange, side = 'bottom', align = 'end' }: PopoverProps) {
+export function FolderPopover({ postId, trigger, open: controlled, onOpenChange, side = 'bottom', align = 'end', onPicked }: PopoverProps) {
   const [uncontrolled, setUncontrolled] = useState(false);
   const open = controlled ?? uncontrolled;
   const setOpen = (next: boolean) => {
@@ -31,7 +33,13 @@ export function FolderPopover({ postId, trigger, open: controlled, onOpenChange,
             className="w-64 origin-[var(--transform-origin)] rounded-xl border border-line bg-surface shadow-pop outline-none transition-[transform,opacity] duration-150 ease-[var(--ease-out)] data-[ending-style]:scale-[0.96] data-[ending-style]:opacity-0 data-[ending-style]:duration-100 data-[starting-style]:scale-[0.96] data-[starting-style]:opacity-0"
             onClick={(e) => e.stopPropagation()}
           >
-            <FolderPicker postId={postId} onPicked={() => setOpen(false)} />
+            <FolderPicker
+              postId={postId}
+              onPicked={(added) => {
+                setOpen(false);
+                onPicked?.(added);
+              }}
+            />
           </Popover.Popup>
         </Popover.Positioner>
       </Popover.Portal>
@@ -39,7 +47,7 @@ export function FolderPopover({ postId, trigger, open: controlled, onOpenChange,
   );
 }
 
-export function FolderPicker({ postId, onPicked }: { postId: string; onPicked?: () => void }) {
+export function FolderPicker({ postId, onPicked }: { postId: string; onPicked?: (added: boolean) => void }) {
   const post = usePost(postId);
   const folders = useFolders();
   const [search, setSearch] = useState('');
@@ -66,7 +74,7 @@ export function FolderPicker({ postId, onPicked }: { postId: string; onPicked?: 
               value={`${folder.name} ${folder.id}`}
               onSelect={() => {
                 toggleFolder(post, folder.id, folder.name);
-                onPicked?.();
+                onPicked?.(!checked);
               }}
               className="flex h-8 items-center gap-2 rounded-lg px-2 text-sm"
             >
@@ -85,7 +93,7 @@ export function FolderPicker({ postId, onPicked }: { postId: string; onPicked?: 
               const id = await createFolder(name);
               await toggleFolder(post, id, name);
               setSearch('');
-              onPicked?.();
+              onPicked?.(true);
             }}
             className="flex h-8 items-center gap-2 rounded-lg px-2 text-sm"
           >

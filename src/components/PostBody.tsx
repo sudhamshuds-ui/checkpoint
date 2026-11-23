@@ -46,9 +46,11 @@ export function MediaStage({ post, startIndex = 0 }: { post: Post; startIndex?: 
         <button
           type="button"
           onClick={copy}
-          className="press absolute top-2 right-2 flex h-8 items-center gap-1.5 rounded-full bg-black/60 pr-2.5 pl-3 text-xs font-medium text-white backdrop-blur-md hover:bg-black/75"
+          aria-label="Copy image"
+          title="Copy image"
+          className="press absolute top-2 right-2 flex size-8 items-center justify-center rounded-full bg-black/60 text-white backdrop-blur-md hover:bg-black/75"
         >
-          Copy image <Copy size={13} strokeWidth={2} />
+          <Copy size={14} strokeWidth={2} />
         </button>
       </div>
       {media.length > 1 && (
