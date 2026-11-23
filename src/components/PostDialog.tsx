@@ -116,7 +116,7 @@ export function PostDialog() {
                       align="end"
                       onPicked={afterSort}
                       trigger={
-                        <Pill label={folderNames.length ? `In ${folderNames.join(', ')}. Change folder` : 'Sort into a folder'}>
+                        <Pill selected={sortOpen} label={folderNames.length ? `In ${folderNames.join(', ')}. Change folder` : 'Sort into a folder'}>
                           {sortLabel}
                         </Pill>
                       }
