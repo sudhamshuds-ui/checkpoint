@@ -194,7 +194,7 @@ function Pill({ children, label, icon, danger, selected, onClick, onPointerDown,
         'press flex h-7 items-center justify-center rounded-full text-xs font-medium',
         icon ? 'w-7' : 'max-w-44 px-3',
         // Selected = its menu is open. .press eases the colour change (140ms) so it never flashes.
-        selected ? 'bg-ink text-bg' : danger ? 'bg-black/60 text-white backdrop-blur-md ring-1 ring-white/20 ring-inset hover:bg-danger-strong' : 'bg-black/60 text-white backdrop-blur-md ring-1 ring-white/20 ring-inset hover:bg-black/75',
+        selected ? 'bg-ink text-bg' : danger ? 'bg-glass text-white backdrop-blur-md ring-1 ring-white/10 ring-inset hover:bg-danger-strong' : 'bg-glass text-white backdrop-blur-md ring-1 ring-white/10 ring-inset hover:bg-glass-hover',
         className,
       )}
     >
@@ -214,7 +214,7 @@ function ImageArrow({ side, onClick, children }: { side: 'left' | 'right'; onCli
         onClick();
       }}
       className={clsx(
-        'press absolute top-1/2 flex size-8 -translate-y-1/2 items-center justify-center rounded-full bg-black/60 text-white backdrop-blur-md ring-1 ring-white/20 ring-inset hover:bg-black/75',
+        'press absolute top-1/2 flex size-8 -translate-y-1/2 items-center justify-center rounded-full bg-glass text-white backdrop-blur-md ring-1 ring-white/10 ring-inset hover:bg-glass-hover',
         side === 'left' ? 'left-2' : 'right-2',
       )}
     >
@@ -225,7 +225,7 @@ function ImageArrow({ side, onClick, children }: { side: 'left' | 'right'; onCli
 
 function Badge({ children, className }: { children: ReactNode; className?: string }) {
   return (
-    <span className={clsx(className, 'tabular flex h-5 items-center gap-1 rounded-full bg-black/60 px-1.5 text-[11px] font-medium text-white backdrop-blur-md ring-1 ring-white/20 ring-inset')}>
+    <span className={clsx(className, 'tabular flex h-5 items-center gap-1 rounded-full bg-glass px-1.5 text-[11px] font-medium text-white backdrop-blur-md ring-1 ring-white/10 ring-inset')}>
       {children}
     </span>
   );

@@ -63,7 +63,7 @@ export function MediaStage({ post, startIndex = 0 }: { post: Post; startIndex?: 
           onClick={copy}
           aria-label="Copy image"
           title="Copy image"
-          className="press absolute top-2 right-2 flex size-8 items-center justify-center rounded-full bg-black/60 text-white backdrop-blur-md ring-1 ring-white/20 ring-inset hover:bg-black/75"
+          className="press absolute top-2 right-2 flex size-8 items-center justify-center rounded-full bg-glass text-white backdrop-blur-md ring-1 ring-white/10 ring-inset hover:bg-glass-hover"
         >
           <Copy size={14} strokeWidth={2} />
         </button>
@@ -99,7 +99,7 @@ function StageButton({ side, onClick }: { side: 'left' | 'right'; onClick: () =>
       onClick={onClick}
       aria-label={side === 'left' ? 'Previous image' : 'Next image'}
       className={clsx(
-        'press absolute top-1/2 flex size-8 -translate-y-1/2 items-center justify-center rounded-full bg-black/60 text-white backdrop-blur-md ring-1 ring-white/20 ring-inset hover:bg-black/75',
+        'press absolute top-1/2 flex size-8 -translate-y-1/2 items-center justify-center rounded-full bg-glass text-white backdrop-blur-md ring-1 ring-white/10 ring-inset hover:bg-glass-hover',
         side === 'left' ? 'left-2' : 'right-2',
       )}
     >

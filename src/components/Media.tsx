@@ -94,7 +94,7 @@ export function MediaView({ media, mode, playing = false, className, fallbackHre
           href={fallbackHref}
           target="_blank"
           rel="noreferrer"
-          className="press absolute flex h-10 items-center gap-2 rounded-full bg-black/70 px-4 text-sm font-medium text-white backdrop-blur-md ring-1 ring-white/20 ring-inset hover:bg-black/80"
+          className="press absolute flex h-10 items-center gap-2 rounded-full bg-glass px-4 text-sm font-medium text-white backdrop-blur-md ring-1 ring-white/10 ring-inset hover:bg-glass-hover"
         >
           <Play size={15} fill="currentColor" /> Play on X
         </a>
