@@ -20,8 +20,6 @@
   --color-accent-ink: var(--accent-ink);
   --color-danger: var(--danger);
   --color-danger-strong: var(--danger-strong);
-  --color-glass: var(--glass);
-  --color-glass-hover: var(--glass-hover);
 
   --shadow-pop: var(--pop-shadow);
   --shadow-card: var(--card-shadow);
@@ -40,9 +38,6 @@
   --muted: #a1a1a6;
   --faint: #6b6b70;
   --line: #262628;
-  /* Controls that sit on images: grey glass, light enough to show on black photos, dark enough for white text on bright ones. */
-  --glass: rgb(52 52 56 / 0.72);
-  --glass-hover: rgb(72 72 78 / 0.85);
   --accent: #915aef;
   --accent-soft: #261a3d;
   --accent-ink: #c9b0f8;
