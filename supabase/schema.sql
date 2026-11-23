@@ -29,6 +29,18 @@ create table if not exists public.folders (
   created_at timestamptz      not null default now()
 );
 
+-- Tags describe a post (many per post) and are separate from folders. Added in Round 2.
+alter table public.posts add column if not exists tag_ids uuid[] not null default '{}';
+
+create table if not exists public.tags (
+  id         uuid             primary key default gen_random_uuid(),
+  user_id    uuid             not null default auth.uid() references auth.users (id) on delete cascade,
+  name       text             not null,
+  color      text             not null default 'purple',
+  position   double precision not null default 0,
+  created_at timestamptz      not null default now()
+);
+
 -- One row per user: the latest sync status, shown on every device.
 create table if not exists public.profiles (
   user_id    uuid        primary key default auth.uid() references auth.users (id) on delete cascade,
@@ -38,18 +50,22 @@ create table if not exists public.profiles (
 
 -- Newer Supabase projects don't grant table access automatically. Logged-in users get it here;
 -- the policies below still limit them to their own rows. Logged-out visitors get nothing.
-grant select, insert, update, delete on public.posts, public.folders, public.profiles to authenticated;
-revoke all on public.posts, public.folders, public.profiles from anon;
+grant select, insert, update, delete on public.posts, public.folders, public.profiles, public.tags to authenticated;
+revoke all on public.posts, public.folders, public.profiles, public.tags from anon;
 
 alter table public.posts    enable row level security;
 alter table public.folders  enable row level security;
 alter table public.profiles enable row level security;
+alter table public.tags     enable row level security;
 
 drop policy if exists "own posts" on public.posts;
 create policy "own posts" on public.posts for all to authenticated
   using (user_id = (select auth.uid())) with check (user_id = (select auth.uid()));
 drop policy if exists "own folders" on public.folders;
 create policy "own folders" on public.folders for all to authenticated
+  using (user_id = (select auth.uid())) with check (user_id = (select auth.uid()));
+drop policy if exists "own tags" on public.tags;
+create policy "own tags" on public.tags for all to authenticated
   using (user_id = (select auth.uid())) with check (user_id = (select auth.uid()));
 drop policy if exists "own profile" on public.profiles;
 create policy "own profile" on public.profiles for all to authenticated
@@ -115,8 +131,19 @@ as $$
   delete from public.folders where id = folder;
 $$;
 
-grant execute on function public.upsert_bookmarks(jsonb), public.remove_bookmark(text), public.delete_folder(uuid) to authenticated;
-revoke execute on function public.upsert_bookmarks(jsonb), public.remove_bookmark(text), public.delete_folder(uuid) from anon, public;
+-- Deletes a tag and takes it off every post in one step.
+create or replace function public.delete_tag(tag uuid)
+returns void
+language sql
+security invoker
+set search_path = ''
+as $$
+  update public.posts set tag_ids = array_remove(tag_ids, tag), updated_at = now() where tag = any (tag_ids);
+  delete from public.tags where id = tag;
+$$;
+
+grant execute on function public.upsert_bookmarks(jsonb), public.remove_bookmark(text), public.delete_folder(uuid), public.delete_tag(uuid) to authenticated;
+revoke execute on function public.upsert_bookmarks(jsonb), public.remove_bookmark(text), public.delete_folder(uuid), public.delete_tag(uuid) from anon, public;
 
 -- Live updates on every open device.
 do $$
@@ -126,6 +153,9 @@ begin
   end if;
   if not exists (select 1 from pg_publication_tables where pubname = 'supabase_realtime' and tablename = 'folders') then
     alter publication supabase_realtime add table public.folders;
+  end if;
+  if not exists (select 1 from pg_publication_tables where pubname = 'supabase_realtime' and tablename = 'tags') then
+    alter publication supabase_realtime add table public.tags;
   end if;
   if not exists (select 1 from pg_publication_tables where pubname = 'supabase_realtime' and tablename = 'profiles') then
     alter publication supabase_realtime add table public.profiles;

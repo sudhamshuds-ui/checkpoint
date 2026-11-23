@@ -1,22 +1,23 @@
 import { create } from 'zustand';
 import { toast } from 'sonner';
 import type { RealtimeChannel } from '@supabase/supabase-js';
-import type { Folder, Post } from './types';
+import type { Folder, Post, Tag, TagColor } from './types';
 import type { SyncState } from './messages';
 import type { Supabase } from './supabase';
-import { byNewest, fetchAllPosts, folderFromRow, postFromRow, postToRow, type FolderRow, type PostRow } from './posts';
+import { byNewest, fetchAllPosts, folderFromRow, postFromRow, postToRow, tagFromRow, type FolderRow, type PostRow, type TagRow } from './posts';
 
 interface DataState {
   /** Undefined until the first load finishes. */
   posts?: Post[];
   folders: Folder[];
+  tags: Tag[];
   sync?: SyncState;
   error?: string;
   /** Sample data with no backend, for the preview page. */
   demo?: boolean;
 }
 
-export const useData = create<DataState>(() => ({ folders: [] }));
+export const useData = create<DataState>(() => ({ folders: [], tags: [] }));
 
 let client: Supabase | undefined;
 let channel: RealtimeChannel | undefined;
@@ -24,6 +25,7 @@ let channel: RealtimeChannel | undefined;
 const setPosts = (fn: (posts: Post[]) => Post[]) => useData.setState((s) => ({ posts: fn(s.posts ?? []) }));
 const setFolders = (fn: (folders: Folder[]) => Folder[]) =>
   useData.setState((s) => ({ folders: fn(s.folders).sort((a, b) => a.order - b.order) }));
+const setTags = (fn: (tags: Tag[]) => Tag[]) => useData.setState((s) => ({ tags: fn(s.tags).sort((a, b) => a.order - b.order) }));
 
 function upsertLocal(post: Post) {
   setPosts((posts) => {
@@ -39,15 +41,18 @@ function upsertLocal(post: Post) {
 export async function startData(supabase: Supabase) {
   client = supabase;
   try {
-    const [posts, folders, profile] = await Promise.all([
+    const [posts, folders, tags, profile] = await Promise.all([
       fetchAllPosts(supabase),
       supabase.from('folders').select('*').order('position'),
+      supabase.from('tags').select('*').order('position'),
       supabase.from('profiles').select('sync').maybeSingle(),
     ]);
     if (folders.error) throw folders.error;
+    if (tags.error) console.warn('[checkpoint] tags unavailable; run supabase/schema.sql', tags.error);
     useData.setState({
       posts,
       folders: (folders.data as FolderRow[]).map(folderFromRow),
+      tags: ((tags.data ?? []) as TagRow[]).map(tagFromRow),
       sync: (profile.data?.sync as SyncState | undefined) ?? undefined,
       error: undefined,
     });
@@ -71,6 +76,15 @@ export async function startData(supabase: Supabase) {
       } else {
         const folder = folderFromRow(change.new as FolderRow);
         setFolders((folders) => [...folders.filter((f) => f.id !== folder.id), folder]);
+      }
+    })
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'tags' }, (change) => {
+      if (change.eventType === 'DELETE') {
+        const id = (change.old as Partial<TagRow>).id;
+        setTags((tags) => tags.filter((t) => t.id !== id));
+      } else {
+        const tag = tagFromRow(change.new as TagRow);
+        setTags((tags) => [...tags.filter((t) => t.id !== tag.id), tag]);
       }
     })
     .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, (change) => {
@@ -101,12 +115,13 @@ export function getPost(id: string) {
   return useData.getState().posts?.find((p) => p.id === id);
 }
 
-export async function updatePost(id: string, patch: Partial<Pick<Post, 'folderIds' | 'note'>>) {
+export async function updatePost(id: string, patch: Partial<Pick<Post, 'folderIds' | 'tagIds' | 'note'>>) {
   const post = getPost(id);
   if (!post) return;
   upsertLocal({ ...post, ...patch });
   const row: Partial<PostRow> & { updated_at: string } = { updated_at: new Date().toISOString() };
   if (patch.folderIds) row.folder_ids = patch.folderIds;
+  if (patch.tagIds) row.tag_ids = patch.tagIds;
   if (patch.note !== undefined) row.note = patch.note;
   await check(client?.from('posts').update(row).eq('id', id));
 }
@@ -145,4 +160,22 @@ export async function removeFolder(id: string) {
   setFolders((folders) => folders.filter((f) => f.id !== id));
   setPosts((posts) => posts.map((p) => (p.folderIds.includes(id) ? { ...p, folderIds: p.folderIds.filter((f) => f !== id) } : p)));
   await check(client?.rpc('delete_folder', { folder: id }));
+}
+
+/** Saves a new folder order after a drag in the sidebar. */
+export async function reorderFolders(ids: string[]) {
+  const positions = new Map(ids.map((id, i) => [id, i + 1]));
+  setFolders((folders) => folders.map((f) => ({ ...f, order: positions.get(f.id) ?? f.order })));
+  if (!client) return;
+  await Promise.all(ids.map((id, i) => check(client!.from('folders').update({ position: i + 1 }).eq('id', id))));
+}
+
+/* ---- Tags ---- */
+
+export async function insertTag(name: string, color: TagColor) {
+  const tags = useData.getState().tags;
+  const tag: Tag = { id: crypto.randomUUID(), name: name.trim(), color, order: (tags[tags.length - 1]?.order ?? 0) + 1 };
+  setTags((list) => [...list, tag]);
+  await check(client?.from('tags').insert({ id: tag.id, name: tag.name, color, position: tag.order }));
+  return tag.id;
 }

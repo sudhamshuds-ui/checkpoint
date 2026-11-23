@@ -8,7 +8,9 @@ Personal inspiration hub for X bookmarks. Two parts share one codebase:
 
 ## Layout
 
-- `src/components/` the dashboard UI, used by the website.
+- `src/components/` the dashboard UI, used by the website. Round 2 design: dark only, image-only tiles with square corners (PostCard), the post modal (PostDialog), tags (Tags), sidebar with sortable folders.
+- Views: `inbox` is shown as **X bookmarks** (unsorted), `feed` as **My feed** (every post with a folder), `folder` is one folder. Tile hover action: Sort in X bookmarks, the post's folder in My feed, none on folder pages.
+- Tags (colored, many per post) are separate from folders. `posts.tag_ids` + `tags` table.
 - `src/lib/data.ts` the website's data store: loads from Supabase, applies changes optimistically, listens to realtime so other devices and the extension update the screen live.
 - `src/lib/posts.ts` row mapping and the Supabase calls shared by website and extension.
 - `src/lib/extension.ts` website -> extension messaging (`chrome.runtime.sendMessage(EXTENSION_ID, ...)`, allowed by `externally_connectable`).
@@ -23,7 +25,9 @@ A post with no `folderIds` is in the Inbox.
 ## Conventions
 
 - Library picks follow the `pick-ui-library` skill: base-ui, cmdk, Sonner, dnd kit, zustand, clsx.
-- Colors are tokens in `src/assets/styles.css` (`bg`, `surface`, `sunken`, `ink`, `muted`, `faint`, `line`, `accent`), with dark values under `prefers-color-scheme`. Don't hardcode colors in components.
+- Colors are tokens in `src/assets/styles.css` (`bg` #090909, `surface`, `sunken`, `ink`, `muted`, `faint`, `line`, `accent` #915AEF, `danger`, `--tag-*`). Dark only. Don't hardcode colors in components.
+- Spacing on a 4/8px grid. Post images and text tiles have square corners; containers (modal, popovers) and pills stay rounded.
+- The Figma file is documentation. Only recreate screens in Figma when the owner asks.
 - Motion follows `emil-design-eng`: custom `--ease-out`, UI transitions under 300ms, `.press` for pressable elements, no animation on keyboard-driven actions (triage).
 - Schema changes go in `supabase/schema.sql` and must stay safe to re-run. Tell the owner to paste it into the Supabase SQL editor.
 - Verify with `pnpm typecheck`, `pnpm test`, `pnpm build` (extension) and `pnpm build:web` (website).

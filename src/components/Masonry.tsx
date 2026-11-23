@@ -1,34 +1,26 @@
 import { useMemo } from 'react';
 import { useElementWidth } from '@/lib/hooks';
 import type { Folder, Post } from '@/lib/types';
-import { PostCard } from './PostCard';
+import { PostCard, type TileAction } from './PostCard';
 import { aspect, visualFor } from './visual';
 
-const GAP = 20;
-const MIN_COLUMN = 232;
-const MIN_COLUMN_SMALL = 150;
-
-/** Rough rendered height, used only to decide which column a card goes in. */
-function estimateHeight(post: Post, width: number) {
-  const visual = visualFor(post);
-  const charsPerLine = width / 7.2;
-  let height = 44; // author row and padding
-  if (visual) {
-    height += width * aspect(visual);
-    if (post.text) height += Math.min(Math.ceil(post.text.length / charsPerLine), 3) * 19;
-  } else {
-    height += 32 + Math.min(Math.ceil(post.text.length / (width / 8.4)) + (post.text.match(/\n/g)?.length ?? 0), 9) * 22;
-  }
-  if (post.note) height += 8 + Math.min(Math.ceil(post.note.length / charsPerLine), 3) * 19;
-  return height;
+/** Desktop: 3 columns with 16px gaps. Narrow screens: 2 columns with 8px gaps. */
+function layout(width: number) {
+  return width >= 880 ? { count: 3, gap: 16 } : { count: 2, gap: 8 };
 }
 
-export function Masonry({ posts, folders, showFolders }: { posts: Post[]; folders: Folder[]; showFolders: boolean }) {
+/** Rendered height, used only to decide which column a tile goes in. Tiles are image-only. */
+function estimateHeight(post: Post, width: number) {
+  const visual = visualFor(post);
+  if (visual) return width * aspect(visual);
+  const lines = Math.min(Math.ceil(post.text.length / (width / 8.4)) + (post.text.match(/\n/g)?.length ?? 0), 10);
+  return 96 + lines * 22;
+}
+
+export function Masonry({ posts, folders, action }: { posts: Post[]; folders: Folder[]; action: TileAction }) {
   const [ref, width] = useElementWidth<HTMLDivElement>();
   const folderMap = useMemo(() => new Map(folders.map((f) => [f.id, f])), [folders]);
-  const min = width < 640 ? MIN_COLUMN_SMALL : MIN_COLUMN;
-  const gap = width < 640 ? 12 : GAP;
-  const count = Math.max(1, Math.floor((width + gap) / (min + gap)));
+  const { count, gap } = layout(width);
   const columnWidth = (width - gap * (count - 1)) / count;
 
   // Shortest-column placement keeps reading order roughly left to right, top to bottom.
@@ -49,7 +41,7 @@ export function Masonry({ posts, folders, showFolders }: { posts: Post[]; folder
         columns.map((column, i) => (
           <div key={i} className="flex min-w-0 flex-1 flex-col" style={{ gap }}>
             {column.map((post) => (
-              <PostCard key={post.id} post={post} folders={folderMap} showFolders={showFolders} />
+              <PostCard key={post.id} post={post} folders={folderMap} action={action} />
             ))}
           </div>
         ))}

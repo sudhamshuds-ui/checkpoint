@@ -5,19 +5,33 @@ import { Check, Plus } from 'lucide-react';
 import { useFolders, usePost } from '@/lib/hooks';
 import { createFolder, toggleFolder } from '@/lib/actions';
 
-/** Popover with a searchable folder list. Picking a folder adds or removes the post. */
-export function FolderPopover({ postId, trigger }: { postId: string; trigger: ReactElement }) {
-  const [open, setOpen] = useState(false);
+interface PopoverProps {
+  postId: string;
+  trigger: ReactElement;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  side?: 'top' | 'bottom';
+  align?: 'start' | 'end';
+}
+
+/** Popover with a searchable folder list. Picking a folder adds or removes the post. It grows out of its trigger. */
+export function FolderPopover({ postId, trigger, open: controlled, onOpenChange, side = 'bottom', align = 'end' }: PopoverProps) {
+  const [uncontrolled, setUncontrolled] = useState(false);
+  const open = controlled ?? uncontrolled;
+  const setOpen = (next: boolean) => {
+    setUncontrolled(next);
+    onOpenChange?.(next);
+  };
   return (
     <Popover.Root open={open} onOpenChange={setOpen}>
       <Popover.Trigger render={trigger} />
       <Popover.Portal>
-        <Popover.Positioner sideOffset={6} align="end" className="z-50">
+        <Popover.Positioner side={side} sideOffset={8} align={align} className="z-50">
           <Popover.Popup
-            className="w-64 origin-[var(--transform-origin)] rounded-xl bg-surface shadow-pop outline-none transition-[transform,opacity] duration-150 ease-[var(--ease-out)] data-[ending-style]:scale-[0.97] data-[ending-style]:opacity-0 data-[starting-style]:scale-[0.97] data-[starting-style]:opacity-0"
+            className="w-64 origin-[var(--transform-origin)] rounded-xl border border-line bg-surface shadow-pop outline-none transition-[transform,opacity] duration-150 ease-[var(--ease-out)] data-[ending-style]:scale-[0.96] data-[ending-style]:opacity-0 data-[ending-style]:duration-100 data-[starting-style]:scale-[0.96] data-[starting-style]:opacity-0"
             onClick={(e) => e.stopPropagation()}
           >
-            <FolderPicker postId={postId} />
+            <FolderPicker postId={postId} onPicked={() => setOpen(false)} />
           </Popover.Popup>
         </Popover.Positioner>
       </Popover.Portal>
@@ -25,7 +39,7 @@ export function FolderPopover({ postId, trigger }: { postId: string; trigger: Re
   );
 }
 
-export function FolderPicker({ postId }: { postId: string }) {
+export function FolderPicker({ postId, onPicked }: { postId: string; onPicked?: () => void }) {
   const post = usePost(postId);
   const folders = useFolders();
   const [search, setSearch] = useState('');
@@ -50,7 +64,10 @@ export function FolderPicker({ postId }: { postId: string }) {
             <Command.Item
               key={folder.id}
               value={`${folder.name} ${folder.id}`}
-              onSelect={() => toggleFolder(post, folder.id, folder.name)}
+              onSelect={() => {
+                toggleFolder(post, folder.id, folder.name);
+                onPicked?.();
+              }}
               className="flex h-8 items-center gap-2 rounded-lg px-2 text-sm"
             >
               <span className="flex size-4 items-center justify-center text-accent">
@@ -68,6 +85,7 @@ export function FolderPicker({ postId }: { postId: string }) {
               const id = await createFolder(name);
               await toggleFolder(post, id, name);
               setSearch('');
+              onPicked?.();
             }}
             className="flex h-8 items-center gap-2 rounded-lg px-2 text-sm"
           >

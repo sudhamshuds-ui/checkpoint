@@ -18,6 +18,7 @@
   --color-accent: var(--accent);
   --color-accent-soft: var(--accent-soft);
   --color-accent-ink: var(--accent-ink);
+  --color-danger: var(--danger);
 
   --shadow-pop: var(--pop-shadow);
   --shadow-card: var(--card-shadow);
@@ -27,55 +28,30 @@
 }
 
 :root {
-  color-scheme: light;
-  --bg: #f6f5f2;
-  --surface: #ffffff;
-  --sunken: #eeede9;
-  --ink: #1a1a18;
-  --muted: #6b6963;
-  --faint: #a19f98;
-  --line: #e4e2dc;
-  --accent: #e0582f;
-  --accent-soft: #fbe9e2;
-  --accent-ink: #b33f1b;
-  --card-shadow: 0 0 0 1px rgba(26, 26, 24, 0.06), 0 1px 2px -1px rgba(26, 26, 24, 0.08);
-  --pop-shadow: 0 0 0 1px rgba(0, 0, 0, 0.06), 0 1px 1px -0.5px rgba(0, 0, 0, 0.06), 0 3px 3px -1.5px rgba(0, 0, 0, 0.06),
-    0 6px 6px -3px rgba(0, 0, 0, 0.06), 0 12px 12px -6px rgba(0, 0, 0, 0.06), 0 24px 24px -12px rgba(0, 0, 0, 0.06);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme='light']) {
-    color-scheme: dark;
-    --bg: #121211;
-    --surface: #1b1b1a;
-    --sunken: #232321;
-    --ink: #edece8;
-    --muted: #9b9990;
-    --faint: #6a6862;
-    --line: #2b2b29;
-    --accent: #f0693f;
-    --accent-soft: #3a2119;
-    --accent-ink: #ff9a78;
-    --card-shadow: 0 0 0 1px rgba(255, 255, 255, 0.06);
-    --pop-shadow: 0 0 0 1px rgba(255, 255, 255, 0.08), 0 12px 32px -8px rgba(0, 0, 0, 0.6);
-  }
-}
-
-:root[data-theme='dark'] {
+  /* Round 2: one dark theme. #090909 base, neutral greys, purple accent. */
   color-scheme: dark;
-  --bg: #121211;
-  --surface: #1b1b1a;
-  --sunken: #232321;
-  --ink: #edece8;
-  --muted: #9b9990;
-  --faint: #6a6862;
-  --line: #2b2b29;
-  --accent: #f0693f;
-  --accent-soft: #3a2119;
-  --accent-ink: #ff9a78;
+  --bg: #090909;
+  --surface: #141415;
+  --sunken: #1e1e20;
+  --ink: #ededee;
+  --muted: #a1a1a6;
+  --faint: #6b6b70;
+  --line: #262628;
+  --accent: #915aef;
+  --accent-soft: #261a3d;
+  --accent-ink: #c9b0f8;
+  --danger: #ff7a66;
   --card-shadow: 0 0 0 1px rgba(255, 255, 255, 0.06);
-  --pop-shadow: 0 0 0 1px rgba(255, 255, 255, 0.08), 0 12px 32px -8px rgba(0, 0, 0, 0.6);
-  }
+  --pop-shadow: 0 0 0 1px rgba(255, 255, 255, 0.08), 0 16px 40px -8px rgba(0, 0, 0, 0.7);
+
+  /* Tag colors. White text on each. */
+  --tag-purple: #8556ae;
+  --tag-magenta: #ab56ae;
+  --tag-blue: #5662ae;
+  --tag-teal: #3f8a86;
+  --tag-amber: #a7793a;
+  --tag-rose: #b0566e;
+}
 
 html,
 body {
@@ -100,6 +76,14 @@ body {
 }
 .press:active {
   transform: scale(0.97);
+}
+
+/* Lenis smooth scrolling on the board */
+.lenis.lenis-smooth {
+  scroll-behavior: auto !important;
+}
+.lenis.lenis-stopped {
+  overflow: clip;
 }
 
 /* cmdk */

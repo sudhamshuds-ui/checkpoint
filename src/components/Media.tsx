@@ -18,6 +18,7 @@ export function MediaView({ media, mode, playing = false, className, fallbackHre
   const videoRef = useRef<HTMLVideoElement>(null);
   const [videoFailed, setVideoFailed] = useState(false);
   const [imageFailed, setImageFailed] = useState(false);
+  const [progress, setProgress] = useState(0);
   const isVideo = media.type !== 'photo' && media.videoUrl && !videoFailed;
   const fit = mode === 'card' ? 'object-cover' : 'object-contain';
 
@@ -39,6 +40,7 @@ export function MediaView({ media, mode, playing = false, className, fallbackHre
 
   if (isVideo) {
     return (
+      <>
       <video
         ref={videoRef}
         className={clsx('block h-full w-full', fit, className)}
@@ -52,8 +54,15 @@ export function MediaView({ media, mode, playing = false, className, fallbackHre
         preload={mode === 'card' ? 'none' : 'metadata'}
         // If X won't serve the video here, fall back to its still frame instead of an error.
         onError={() => setVideoFailed(true)}
+        onTimeUpdate={(e) => mode === 'card' && setProgress(e.currentTarget.currentTime / (e.currentTarget.duration || 1))}
         aria-label={media.alt}
       />
+      {mode === 'card' && playing && (
+        <span aria-hidden className="pointer-events-none absolute inset-x-0 bottom-0 h-0.5 bg-white/25">
+          <span className="block h-full origin-left bg-white" style={{ transform: `scaleX(${progress})` }} />
+        </span>
+      )}
+      </>
     );
   }
 

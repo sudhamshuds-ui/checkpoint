@@ -1,6 +1,6 @@
 import { toast } from 'sonner';
-import { deletePost, insertFolder, removeFolder, restorePost, updateFolderName, updatePost } from './data';
-import type { Post } from './types';
+import { deletePost, insertFolder, insertTag, removeFolder, restorePost, updateFolderName, updatePost } from './data';
+import { TAG_COLORS, type Post, type Tag, type TagColor } from './types';
 
 export const createFolder = (name: string) => insertFolder(name);
 
@@ -51,4 +51,20 @@ export async function removePost(post: Post) {
     description: 'It stays bookmarked on X.',
     action: { label: 'Undo', onClick: () => restorePost(post) },
   });
+}
+
+/** Adds or removes a tag on a post. */
+export async function toggleTag(post: Post, tagId: string) {
+  const has = post.tagIds.includes(tagId);
+  await updatePost(post.id, { tagIds: has ? post.tagIds.filter((t) => t !== tagId) : [...post.tagIds, tagId] });
+}
+
+export async function createTagOn(post: Post, name: string, color: TagColor) {
+  const id = await insertTag(name, color);
+  await updatePost(post.id, { tagIds: [...post.tagIds, id] });
+}
+
+/** The first color not used by an existing tag, so new tags stay easy to tell apart. */
+export function nextTagColor(tags: Tag[]): TagColor {
+  return TAG_COLORS.find((c) => !tags.some((t) => t.color === c)) ?? TAG_COLORS[tags.length % TAG_COLORS.length];
 }

@@ -1,55 +1,70 @@
-import { memo, useState } from 'react';
+import { memo, useState, type PointerEvent, type ReactNode } from 'react';
+import type React from 'react';
 import clsx from 'clsx';
 import { useDraggable } from '@dnd-kit/core';
-import { ArrowUpRight, FolderPlus, Layers, Link2 } from 'lucide-react';
-import { duration, relativeTime } from '@/lib/format';
+import { ChevronLeft, ChevronRight, Layers, Link2, Trash2 } from 'lucide-react';
+import { duration } from '@/lib/format';
+import { removePost } from '@/lib/actions';
 import type { Folder, Post } from '@/lib/types';
 import { useUI } from '@/lib/store';
-import { Avatar, MediaView } from './Media';
+import { MediaView } from './Media';
 import { FolderPopover } from './FolderPicker';
 import { aspect, visualFor } from './visual';
+
+/** What the top-right button does: Sort (X bookmarks), change folder (My feed), nothing (a folder page). */
+export type TileAction = 'sort' | 'folder' | 'none';
 
 interface Props {
   post: Post;
   folders: Map<string, Folder>;
-  showFolders: boolean;
+  action: TileAction;
 }
 
-export const PostCard = memo(function PostCard({ post, folders, showFolders }: Props) {
+// Controls on a tile must not start a drag or open the post.
+const stop = (e: { stopPropagation: () => void }) => e.stopPropagation();
+
+export { Pill };
+
+export const PostCard = memo(function PostCard({ post, folders, action }: Props) {
   const openPost = useUI((s) => s.openPost);
   const [hovered, setHovered] = useState(false);
-  const { setNodeRef, listeners, attributes, isDragging } = useDraggable({ id: post.id });
-  const visual = visualFor(post);
-  const folderNames = showFolders ? post.folderIds.map((id) => folders.get(id)?.name).filter(Boolean) : [];
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [index, setIndex] = useState(0);
+  const { setNodeRef, listeners, attributes, isDragging } = useDraggable({ id: `post:${post.id}` });
 
-  const actions = (
-    <div className="pointer-events-none absolute top-2 right-2 flex gap-1 opacity-0 transition-opacity duration-150 group-focus-within:pointer-events-auto group-focus-within:opacity-100 [@media(hover:hover)]:group-hover:pointer-events-auto [@media(hover:hover)]:group-hover:opacity-100">
-      <FolderPopover
-        postId={post.id}
-        trigger={
-          <button
-            type="button"
-            onClick={(e) => e.stopPropagation()}
-            onPointerDown={(e) => e.stopPropagation()}
-            className="press flex h-7 items-center gap-1.5 rounded-full bg-black/60 px-2.5 text-xs font-medium text-white backdrop-blur-md hover:bg-black/75"
-          >
-            <FolderPlus size={13} strokeWidth={2} />
-            Folder
-          </button>
-        }
-      />
-      <a
-        href={post.url}
-        target="_blank"
-        rel="noreferrer"
-        onClick={(e) => e.stopPropagation()}
-        onPointerDown={(e) => e.stopPropagation()}
-        aria-label="Open on X"
-        className="press flex size-7 items-center justify-center rounded-full bg-black/60 text-white backdrop-blur-md hover:bg-black/75"
-      >
-        <ArrowUpRight size={14} strokeWidth={2} />
-      </a>
-    </div>
+  const visual = visualFor(post);
+  const media = post.media.length ? post.media : post.quote?.media ?? [];
+  const current = media[Math.min(index, Math.max(media.length - 1, 0))];
+  // The hover look stays while the folder menu is open, so moving the pointer into the menu keeps context.
+  const active = hovered || menuOpen;
+  const names = post.folderIds.map((id) => folders.get(id)?.name).filter(Boolean) as string[];
+  const actionLabel = action === 'sort' ? 'Sort' : names.length ? `${names[0]}${names.length > 1 ? ` +${names.length - 1}` : ''}` : 'Sort';
+
+  const onPointerEnter = (e: PointerEvent) => e.pointerType === 'mouse' && setHovered(true);
+  const onPointerLeave = () => setHovered(false);
+
+  const controls = (
+    <>
+      {action !== 'none' && (
+        <div className={clsx('absolute top-2 right-2 transition-opacity duration-150', active ? 'opacity-100' : 'pointer-events-none opacity-0 group-focus-within:pointer-events-auto group-focus-within:opacity-100')}>
+          <FolderPopover
+            postId={post.id}
+            open={menuOpen}
+            onOpenChange={setMenuOpen}
+            trigger={
+              <Pill selected={menuOpen} label={action === 'sort' ? 'Sort into a folder' : `In ${names.join(', ')}. Change folder`}>
+                {actionLabel}
+              </Pill>
+            }
+          />
+        </div>
+      )}
+      <div className={clsx('absolute right-2 bottom-2 transition-opacity duration-150', active ? 'opacity-100' : 'pointer-events-none opacity-0 group-focus-within:pointer-events-auto group-focus-within:opacity-100')}>
+        <Pill icon label="Remove from Checkpoint" onClick={() => removePost(post)}>
+          <Trash2 size={14} strokeWidth={2} />
+        </Pill>
+      </div>
+    </>
   );
 
   return (
@@ -58,66 +73,117 @@ export const PostCard = memo(function PostCard({ post, folders, showFolders }: P
       {...attributes}
       {...listeners}
       aria-label={`Post by ${post.author.name}`}
-      onClick={() => openPost(post.id)}
+      onClick={() => openPost(post.id, index)}
       onKeyDown={(e) => {
-        if (e.key === 'Enter') openPost(post.id);
+        if (e.key === 'Enter') openPost(post.id, index);
       }}
-      onPointerEnter={() => setHovered(true)}
-      onPointerLeave={() => setHovered(false)}
+      onPointerEnter={onPointerEnter}
+      onPointerLeave={onPointerLeave}
       className={clsx(
-        'group relative cursor-pointer rounded-[14px] outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-4 focus-visible:ring-offset-bg',
+        'group relative cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-bg',
         isDragging && 'opacity-40',
       )}
     >
       {visual ? (
-        <div className="relative overflow-hidden rounded-[14px] bg-sunken shadow-card" style={{ aspectRatio: `1 / ${aspect(visual)}` }}>
-          {visual.kind === 'media' ? (
-            <MediaView media={visual.media} mode="card" playing={hovered} />
-          ) : (
+        <div className="relative overflow-hidden bg-sunken" style={{ aspectRatio: `1 / ${aspect(visual)}` }}>
+          {visual.kind === 'media' && current ? (
+            <MediaView key={current.url} media={current} mode="card" playing={active} />
+          ) : visual.kind === 'link' ? (
             <img src={visual.image} alt="" loading="lazy" draggable={false} className="h-full w-full object-cover" />
-          )}
+          ) : null}
+
           <div className="absolute bottom-2 left-2 flex gap-1">
-            {visual.kind === 'media' && visual.media.type === 'video' && <Chip>{duration(visual.media.durationMs) || 'Video'}</Chip>}
-            {visual.kind === 'media' && visual.media.type === 'gif' && <Chip>GIF</Chip>}
-            {visual.kind === 'media' && visual.count > 1 && (
-              <Chip>
-                <Layers size={11} strokeWidth={2.25} /> {visual.count}
-              </Chip>
+            {current?.type === 'video' && !active && <Badge>{duration(current.durationMs) || 'Video'}</Badge>}
+            {current?.type === 'gif' && <Badge>GIF</Badge>}
+            {media.length > 1 && (
+              <Badge>
+                <Layers size={11} strokeWidth={2.25} /> {media.length > 1 && active ? `${index + 1}/${media.length}` : media.length}
+              </Badge>
             )}
             {visual.kind === 'link' && (
-              <Chip>
+              <Badge>
                 <Link2 size={11} strokeWidth={2.25} /> {post.link?.domain ?? 'Link'}
-              </Chip>
+              </Badge>
             )}
           </div>
-          {actions}
+
+          {media.length > 1 && active && (
+            <>
+              {index > 0 && (
+                <ImageArrow side="left" onClick={() => setIndex((i) => Math.max(0, i - 1))}>
+                  <ChevronLeft size={16} />
+                </ImageArrow>
+              )}
+              {index < media.length - 1 && (
+                <ImageArrow side="right" onClick={() => setIndex((i) => Math.min(media.length - 1, i + 1))}>
+                  <ChevronRight size={16} />
+                </ImageArrow>
+              )}
+            </>
+          )}
+          {controls}
         </div>
       ) : (
-        <div className="relative rounded-[14px] bg-surface p-4 pr-5 shadow-card">
-          <p className="line-clamp-[9] text-[15px] leading-[1.45] tracking-[-0.005em] whitespace-pre-line text-ink">{post.text}</p>
-          {actions}
+        <div className="relative border border-line bg-surface px-4 py-12">
+          <p className="line-clamp-[10] text-[15px] leading-[1.45] whitespace-pre-line text-ink">{post.text}</p>
+          {controls}
         </div>
       )}
-
-      <div className="px-1 pt-2.5 pb-1">
-        <div className="flex items-center gap-1.5 text-[12.5px]">
-          <Avatar src={post.author.avatar} />
-          <span className="truncate font-medium text-ink">{post.author.name}</span>
-          <span className="shrink-0 text-faint">· {relativeTime(post.createdAt)}</span>
-        </div>
-        {visual && post.text && (
-          <p className="mt-1 line-clamp-3 text-[13px] leading-[1.45] whitespace-pre-line text-muted">{post.text}</p>
-        )}
-        {post.note && (
-          <p className="mt-2 line-clamp-3 border-l-2 border-accent pl-2 text-[13px] leading-[1.45] text-ink">{post.note}</p>
-        )}
-        {folderNames.length > 0 && <p className="mt-1.5 truncate text-xs text-faint">{folderNames.join(' · ')}</p>}
-      </div>
     </article>
   );
 });
 
-function Chip({ children }: { children: React.ReactNode }) {
+type PillProps = Omit<React.ComponentPropsWithRef<'button'>, 'children'> & { children: ReactNode; label: string; icon?: boolean; selected?: boolean };
+
+/* Popover triggers pass their own handlers and ref through these props, so compose rather than replace them. */
+function Pill({ children, label, icon, selected, onClick, onPointerDown, className, ...rest }: PillProps) {
+  return (
+    <button
+      type="button"
+      aria-label={label}
+      title={label}
+      {...rest}
+      onPointerDown={(e) => {
+        e.stopPropagation();
+        onPointerDown?.(e);
+      }}
+      onClick={(e) => {
+        e.stopPropagation();
+        onClick?.(e);
+      }}
+      className={clsx(
+        'press flex h-7 items-center justify-center rounded-full text-xs font-medium',
+        icon ? 'w-7' : 'max-w-44 px-3',
+        selected ? 'bg-ink text-bg' : 'bg-black/60 text-white backdrop-blur-md hover:bg-black/75',
+        className,
+      )}
+    >
+      <span className="truncate">{children}</span>
+    </button>
+  );
+}
+
+function ImageArrow({ side, onClick, children }: { side: 'left' | 'right'; onClick: () => void; children: ReactNode }) {
+  return (
+    <button
+      type="button"
+      aria-label={side === 'left' ? 'Previous image' : 'Next image'}
+      onPointerDown={stop}
+      onClick={(e) => {
+        e.stopPropagation();
+        onClick();
+      }}
+      className={clsx(
+        'press absolute top-1/2 flex size-8 -translate-y-1/2 items-center justify-center rounded-full bg-black/60 text-white backdrop-blur-md hover:bg-black/75',
+        side === 'left' ? 'left-2' : 'right-2',
+      )}
+    >
+      {children}
+    </button>
+  );
+}
+
+function Badge({ children }: { children: ReactNode }) {
   return (
     <span className="tabular flex h-5 items-center gap-1 rounded-full bg-black/60 px-1.5 text-[11px] font-medium text-white backdrop-blur-md">
       {children}
@@ -125,18 +191,14 @@ function Chip({ children }: { children: React.ReactNode }) {
   );
 }
 
-/** Compact copy of a card that follows the pointer while dragging. */
+/** Compact copy of a tile that follows the pointer while dragging onto a folder. */
 export function DragPreview({ post }: { post: Post }) {
   const visual = visualFor(post);
   return (
-    <div className="w-28 -rotate-3 overflow-hidden rounded-[10px] bg-surface shadow-pop">
+    <div className="w-28 -rotate-3 overflow-hidden bg-surface shadow-pop">
       {visual ? (
         <div className="bg-sunken" style={{ aspectRatio: `1 / ${Math.min(aspect(visual), 1.1)}` }}>
-          {visual.kind === 'media' ? (
-            <MediaView media={visual.media} mode="card" />
-          ) : (
-            <img src={visual.image} alt="" className="h-full w-full object-cover" />
-          )}
+          {visual.kind === 'media' ? <MediaView media={visual.media} mode="card" /> : <img src={visual.image} alt="" className="h-full w-full object-cover" />}
         </div>
       ) : (
         <p className="line-clamp-4 p-3 text-xs leading-snug">{post.text}</p>

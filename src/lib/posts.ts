@@ -1,4 +1,4 @@
-import type { Folder, IncomingBookmark, Post } from './types';
+import { TAG_COLORS, type Folder, type IncomingBookmark, type Post, type Tag, type TagColor } from './types';
 import type { Supabase } from './supabase';
 
 export const isInbox = (post: Post) => post.folderIds.length === 0 && !post.unbookmarked;
@@ -23,6 +23,7 @@ export interface PostRow {
   sort_key: string;
   saved_at: string;
   folder_ids: string[];
+  tag_ids?: string[];
   note: string;
   unbookmarked: boolean;
 }
@@ -48,6 +49,7 @@ export function postFromRow(r: PostRow): Post {
     sortKey: r.sort_key,
     savedAt: Date.parse(r.saved_at),
     folderIds: r.folder_ids ?? [],
+    tagIds: r.tag_ids ?? [],
     note: r.note ?? '',
     unbookmarked: r.unbookmarked,
   };
@@ -66,6 +68,7 @@ export function postToRow(p: Post): PostRow {
     sort_key: p.sortKey,
     saved_at: new Date(p.savedAt).toISOString(),
     folder_ids: p.folderIds,
+    tag_ids: p.tagIds,
     note: p.note,
     unbookmarked: Boolean(p.unbookmarked),
   };
@@ -77,6 +80,23 @@ export const folderFromRow = (r: FolderRow): Folder => ({
   order: r.position,
   createdAt: Date.parse(r.created_at),
 });
+
+export interface TagRow {
+  id: string;
+  name: string;
+  color: string;
+  position: number;
+}
+
+export const tagFromRow = (r: TagRow): Tag => ({
+  id: r.id,
+  name: r.name,
+  color: (TAG_COLORS as readonly string[]).includes(r.color) ? (r.color as TagColor) : 'purple',
+  order: r.position,
+});
+
+/** Posts that have been filed into at least one folder: the My feed view. */
+export const isSorted = (post: Post) => post.folderIds.length > 0;
 
 const PAGE = 1000;
 

@@ -1,4 +1,4 @@
-import type { Folder, Media, Post } from '@/lib/types';
+import type { Folder, Media, Post, Tag } from '@/lib/types';
 import { ART, avatar, type ArtKind } from './demo-art';
 
 /* Sample posts for the preview page. Authors and captions are made up. */
@@ -29,6 +29,14 @@ export const demoFolders: Folder[] = [
   { id: F.build, name: 'Build ideas', order: 5, createdAt: 0 },
 ];
 
+export const demoTags: Tag[] = [
+  { id: 't-reference', name: 'Reference', color: 'teal', order: 1 },
+  { id: 't-recreate', name: 'Recreate later', color: 'amber', order: 2 },
+  { id: 't-type', name: 'Typography', color: 'purple', order: 3 },
+  { id: 't-color', name: 'Color', color: 'rose', order: 4 },
+  { id: 't-forage', name: 'Forage', color: 'magenta', order: 5 },
+];
+
 type Spec = {
   who: number;
   text: string;
@@ -37,6 +45,7 @@ type Spec = {
   type?: 'video' | 'gif';
   seconds?: number;
   folders?: string[];
+  tags?: string[];
   note?: string;
   hoursAgo: number;
   link?: { title: string; domain: string; art: [ArtKind, string, string, string, string] };
@@ -44,18 +53,18 @@ type Spec = {
 
 const SPECS: Spec[] = [
   { who: 0, hoursAgo: 2, text: 'Spent the weekend rebuilding our onboarding. The trick was letting the illustration carry the motion so the UI could stay still.', art: ['mesh', 1200, 900, '#2b2a6b', '#ff7a59', '#4cc3ff', 'Onboarding v3'], type: 'video', seconds: 24 },
-  { who: 1, hoursAgo: 5, text: 'New identity for a small coffee roaster in Gothenburg. Warm, a little odd, very tactile.', art: ['brand', 1080, 1350, '#ead9c4', '#3a2a20', '#b5532d', 'Rost & Co'], extra: [['palette', '#3a2a20', '#b5532d', '#d9a35b', 'Rost palette'], ['specimen', '#ead9c4', '#3a2a20', '#b5532d', 'Rost Grotesk']], folders: [F.branding], note: 'Love how the mark works at 16px. Steal the stamp idea for the Checkpoint logo.' },
+  { who: 1, hoursAgo: 5, text: 'New identity for a small coffee roaster in Gothenburg. Warm, a little odd, very tactile.', art: ['brand', 1080, 1350, '#ead9c4', '#3a2a20', '#b5532d', 'Rost & Co'], extra: [['palette', '#3a2a20', '#b5532d', '#d9a35b', 'Rost palette'], ['specimen', '#ead9c4', '#3a2a20', '#b5532d', 'Rost Grotesk']], folders: [F.branding], tags: ['t-reference', 't-forage'], note: 'Love how the mark works at 16px. Steal the stamp idea for the Checkpoint logo.' },
   { who: 2, hoursAgo: 9, text: 'Hover states should whisper, not shout.', art: ['ui', 1000, 1000, '#dfe7ef', '#1f6feb', '#0f2b4c', 'Projects'], type: 'gif' },
   { who: 3, hoursAgo: 14, text: 'A thread on empty states that actually help people start.\n\n1/ Start with the job the screen is doing, not the illustration.' },
-  { who: 4, hoursAgo: 20, text: 'Our new serif is out. Sharp at display sizes, calm in paragraphs.', art: ['specimen', 1200, 800, '#f4efe6', '#1d1c1a', '#a33b2c', 'Lowell Serif'], folders: [F.visual] },
-  { who: 5, hoursAgo: 26, text: 'Easing study: same 300ms, five curves. Only one feels like it respects your time.', art: ['motion', 1600, 900, '#111214', '#7cf2c4', '#7cf2c4', 'cubic-bezier(0.23, 1, 0.32, 1)'], type: 'video', seconds: 12, folders: [F.motion, F.recreate], note: 'Use this curve for card enter. Exit should be faster, ~200ms.' },
+  { who: 4, hoursAgo: 20, text: 'Our new serif is out. Sharp at display sizes, calm in paragraphs.', art: ['specimen', 1200, 800, '#f4efe6', '#1d1c1a', '#a33b2c', 'Lowell Serif'], folders: [F.visual], tags: ['t-type'] },
+  { who: 5, hoursAgo: 26, text: 'Easing study: same 300ms, five curves. Only one feels like it respects your time.', art: ['motion', 1600, 900, '#111214', '#7cf2c4', '#7cf2c4', 'cubic-bezier(0.23, 1, 0.32, 1)'], type: 'video', seconds: 12, folders: [F.motion, F.recreate], tags: ['t-recreate'], note: 'Use this curve for card enter. Exit should be faster, ~200ms.' },
   { who: 6, hoursAgo: 31, text: 'Grid systems are a love language.', art: ['swiss', 900, 1200, '#f2efe8', '#d4361f', '#1d1c1a', 'Neue Grafik'], folders: [F.visual] },
   { who: 0, hoursAgo: 40, text: 'Shipped dark mode. The hard part was shadows, not colors.', art: ['ui', 1080, 1350, '#1b1d22', '#8b7cf6', '#2a2550', 'Dark mode'] },
   { who: 1, hoursAgo: 46, text: 'Packaging system for a skincare line. Every SKU gets one color and one sentence.', art: ['palette', 1200, 900, '#e7c7c0', '#7d8f7a', '#2f3a33', 'Skincare system'], folders: [F.branding] },
   { who: 2, hoursAgo: 52, text: 'Built a tiny tool that turns your bookmarks into a moodboard. Might open source it.', link: { title: 'moodboard.dev: bookmarks to boards', domain: 'moodboard.dev', art: ['mesh', '#1a2a24', '#c9f05a', '#2bb3a3', 'moodboard.dev'] }, folders: [F.build], note: 'Basically what Checkpoint is. Check how they handle tags.' },
-  { who: 3, hoursAgo: 60, text: 'Drag to reorder, but the item you drag tilts 2° and the others make room with a spring. Small thing, feels great.', art: ['ui', 1000, 1250, '#f3e9dc', '#e0582f', '#3b2f2a', 'Reorder'], type: 'gif', folders: [F.recreate, F.motion] },
+  { who: 3, hoursAgo: 60, text: 'Drag to reorder, but the item you drag tilts 2° and the others make room with a spring. Small thing, feels great.', art: ['ui', 1000, 1250, '#f3e9dc', '#e0582f', '#3b2f2a', 'Reorder'], type: 'gif', folders: [F.recreate, F.motion], tags: ['t-recreate'] },
   { who: 4, hoursAgo: 70, text: 'Specimen poster for the variable release.', art: ['swiss', 1080, 1350, '#14213d', '#fca311', '#e5e5e5', 'Variable 2.0'] },
-  { who: 5, hoursAgo: 80, text: 'Clay renders for a fintech onboarding. Soft, friendly, not childish.', art: ['blob', 1200, 1200, '#efe6dc', '#ff8a5b', '#ffd166', 'render 04/12'], folders: [F.visual] },
+  { who: 5, hoursAgo: 80, text: 'Clay renders for a fintech onboarding. Soft, friendly, not childish.', art: ['blob', 1200, 1200, '#efe6dc', '#ff8a5b', '#ffd166', 'render 04/12'], folders: [F.visual], tags: ['t-color'] },
   { who: 6, hoursAgo: 96, text: 'The best interfaces feel inevitable. Once you have used them you cannot imagine them any other way.' },
   { who: 0, hoursAgo: 110, text: 'Scroll-linked type reveal. Each line unmasks as it crosses the middle of the screen.', art: ['motion', 1200, 900, '#f5f2ec', '#1d1c1a', '#e0582f', 'scroll-timeline: view()'], type: 'video', seconds: 18, folders: [F.recreate] },
   { who: 1, hoursAgo: 130, text: 'Rebrand for a cycling club. The wordmark is drawn from the shape of their old jersey stripe.', art: ['brand', 1200, 900, '#0f3d2e', '#f2e8cf', '#e76f51', 'Velo Norte'], folders: [F.branding] },
@@ -101,6 +110,7 @@ export function demoPosts(now = Date.now()): Post[] {
       sortKey: id.padStart(24, '0'),
       savedAt: now - s.hoursAgo * 3_000_000,
       folderIds: s.folders ?? [],
+      tagIds: s.tags ?? [],
       note: s.note ?? '',
     };
     if (s.link) {

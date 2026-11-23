@@ -1,25 +1,27 @@
 import { useEffect, useRef, useState } from 'react';
 import clsx from 'clsx';
-import { ChevronLeft, ChevronRight, Link2 } from 'lucide-react';
+import { ArrowUpRight, ChevronLeft, ChevronRight, Copy, Link2 } from 'lucide-react';
+import { toast } from 'sonner';
+import { copyMedia } from '@/lib/clipboard';
 import { setNote } from '@/lib/actions';
 import { shortDate } from '@/lib/format';
 import type { Media, Post } from '@/lib/types';
 import { Avatar, MediaView } from './Media';
 
-/** Large media area with simple paging for multi-image posts. */
-export function MediaStage({ post }: { post: Post }) {
+/** The post's media in the modal: square corners, Copy image, and arrows beside it for carousels. */
+export function MediaStage({ post, startIndex = 0 }: { post: Post; startIndex?: number }) {
   const media: Media[] = post.media.length ? post.media : post.quote?.media ?? [];
-  const [index, setIndex] = useState(0);
-  useEffect(() => setIndex(0), [post.id]);
+  const [index, setIndex] = useState(startIndex);
+  useEffect(() => setIndex(startIndex), [post.id, startIndex]);
 
   if (!media.length) {
     if (post.link?.image) {
       return (
-        <a href={post.link.url} target="_blank" rel="noreferrer" className="block w-full max-w-xl overflow-hidden rounded-xl bg-surface shadow-card">
+        <a href={post.link.url} target="_blank" rel="noreferrer" className="block w-full max-w-xl overflow-hidden border border-line bg-surface">
           <img src={post.link.image} alt="" className="aspect-[1.91/1] w-full object-cover" />
           <div className="p-4">
             <p className="text-xs text-faint">{post.link.domain}</p>
-            {post.link.title && <p className="mt-0.5 text-[15px] font-medium">{post.link.title}</p>}
+            {post.link.title && <p className="mt-1 text-[15px] font-medium">{post.link.title}</p>}
           </div>
         </a>
       );
@@ -28,21 +30,40 @@ export function MediaStage({ post }: { post: Post }) {
   }
 
   const current = media[Math.min(index, media.length - 1)];
+  async function copy() {
+    try {
+      const what = await copyMedia(current);
+      toast(what === 'frame' ? 'Video frame copied' : 'Image copied', { description: 'Paste it into Figma or anywhere else.' });
+    } catch (e) {
+      toast.error("Couldn't copy this one", { description: e instanceof Error && e.message.includes('supported') ? e.message : 'X blocked the download. Open it on X and copy from there.' });
+    }
+  }
+
   return (
     <div className="relative flex h-full w-full items-center justify-center">
-      <MediaView key={current.url} media={current} mode="detail" className="max-h-full rounded-lg" fallbackHref={post.url} />
+      <div className="relative">
+        <MediaView key={current.url} media={current} mode="detail" fallbackHref={post.url} className="max-h-[min(560px,calc(100dvh-224px))] !w-auto max-w-full" />
+        <button
+          type="button"
+          onClick={copy}
+          className="press absolute top-2 right-2 flex h-8 items-center gap-1.5 rounded-full bg-black/60 pr-2.5 pl-3 text-xs font-medium text-white backdrop-blur-md hover:bg-black/75"
+        >
+          Copy image <Copy size={13} strokeWidth={2} />
+        </button>
+      </div>
       {media.length > 1 && (
         <>
-          <StageButton side="left" disabled={index === 0} onClick={() => setIndex((i) => i - 1)} />
-          <StageButton side="right" disabled={index === media.length - 1} onClick={() => setIndex((i) => i + 1)} />
-          <div className="absolute bottom-0 left-1/2 flex -translate-x-1/2 gap-1.5">
+          {index > 0 && <StageButton side="left" onClick={() => setIndex((i) => i - 1)} />}
+          {index < media.length - 1 && <StageButton side="right" onClick={() => setIndex((i) => i + 1)} />}
+          <div className="absolute -bottom-10 left-1/2 flex -translate-x-1/2 gap-1.5">
             {media.map((m, i) => (
               <button
                 key={m.url}
                 type="button"
-                aria-label={`Show item ${i + 1}`}
+                aria-label={`Show image ${i + 1} of ${media.length}`}
+                aria-current={i === index}
                 onClick={() => setIndex(i)}
-                className={clsx('size-1.5 rounded-full transition-colors', i === index ? 'bg-ink' : 'bg-faint/50')}
+                className={clsx('size-1.5 rounded-full transition-colors', i === index ? 'bg-ink' : 'bg-faint')}
               />
             ))}
           </div>
@@ -52,37 +73,36 @@ export function MediaStage({ post }: { post: Post }) {
   );
 }
 
-function StageButton({ side, disabled, onClick }: { side: 'left' | 'right'; disabled: boolean; onClick: () => void }) {
+function StageButton({ side, onClick }: { side: 'left' | 'right'; onClick: () => void }) {
   const Icon = side === 'left' ? ChevronLeft : ChevronRight;
   return (
     <button
       type="button"
-      disabled={disabled}
       onClick={onClick}
-      aria-label={side === 'left' ? 'Previous' : 'Next'}
+      aria-label={side === 'left' ? 'Previous image' : 'Next image'}
       className={clsx(
-        'press absolute top-1/2 flex size-9 -translate-y-1/2 items-center justify-center rounded-full bg-surface text-ink shadow-pop disabled:opacity-0',
-        side === 'left' ? 'left-0' : 'right-0',
+        'press absolute top-1/2 flex size-8 -translate-y-1/2 items-center justify-center rounded-full border border-line bg-surface text-ink hover:bg-sunken',
+        side === 'left' ? '-left-12' : '-right-12',
       )}
     >
-      <Icon size={18} />
+      <Icon size={16} />
     </button>
   );
 }
 
-export function PostText({ post }: { post: Post }) {
+export function PostText({ post, showText = true }: { post: Post; showText?: boolean }) {
   return (
     <div>
-      <a href={`https://x.com/${post.author.handle}`} target="_blank" rel="noreferrer" className="flex items-center gap-2.5">
+      <a href={post.url} target="_blank" rel="noreferrer" className="group/author flex items-center gap-3 rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-accent" title="Open this post on X">
         <Avatar src={post.author.avatar} size={32} />
         <span className="min-w-0 leading-tight">
           <span className="block truncate text-sm font-medium">{post.author.name}</span>
-          <span className="block truncate text-[13px] text-faint">
-            @{post.author.handle} · {shortDate(post.createdAt)}
+          <span className="flex items-center gap-1 truncate text-[13px] text-faint group-hover/author:text-muted">
+            @{post.author.handle} · {shortDate(post.createdAt)} <ArrowUpRight size={12} />
           </span>
         </span>
       </a>
-      {post.text && <p className="mt-4 text-[14.5px] leading-[1.55] whitespace-pre-line break-words">{post.text}</p>}
+      {showText && post.text && <p className="mt-4 text-[14.5px] leading-[1.55] whitespace-pre-line break-words">{post.text}</p>}
       {post.quote && (
         <a href={post.quote.url} target="_blank" rel="noreferrer" className="mt-4 block rounded-xl border border-line p-3 hover:bg-sunken/50">
           <span className="flex items-center gap-1.5 text-[12.5px]">

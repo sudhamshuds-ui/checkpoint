@@ -39,12 +39,12 @@ To update the extension later: double-click **Update Checkpoint.bat**, then clic
 
 | Where | What |
 | --- | --- |
-| Inbox | Everything not in a folder yet. The toolbar badge shows how many. |
-| Drag a post onto a folder | Files it. Dragging out of a folder moves it. Drop on Inbox to unsort. |
-| Folder button on a card | Add to or remove from folders, or create one by typing a name. |
-| Click a post | Big view with the note field, folders and a link to X. Arrow keys step through posts. |
-| Sort inbox | One post at a time. `1`–`9` files and moves on, hold `⇧` to pick several, `N` new folder, `Enter` writes a note, `S` skip, `←` back, `Z` undo, `E` open on X. |
-| `/` | Search captions, notes and people. |
+| X bookmarks | Everything not sorted yet. The toolbar badge shows how many. Images only, three columns. |
+| Hover a post | Sort opens the folder picker; the bin removes it from Checkpoint (Undo in the toast). Videos play; carousels show arrows. |
+| Click a post | Big view: note, tags, Copy image (pastes into Figma; videos copy a frame), Sort, Remove. Arrows beside it, or arrow keys, step through posts. |
+| My feed | Every sorted post. Hover shows its folder; click it to move the post. Search covers tags, notes and people. |
+| Folders | Drag to reorder. Drop a post on one to file it. |
+| Tags | Colored, many per post, separate from folders. Click a tag to see everything with it. |
 
 ## Stack
 

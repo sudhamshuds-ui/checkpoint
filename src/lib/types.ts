@@ -47,6 +47,7 @@ export interface Post extends ParsedPost {
   /** When Checkpoint first saw this bookmark. */
   savedAt: number;
   folderIds: string[];
+  tagIds: string[];
   note: string;
   /** Set when the post was removed from X bookmarks but kept because it lives in a folder. */
   unbookmarked?: boolean;
@@ -62,4 +63,14 @@ export interface Folder {
 export interface IncomingBookmark {
   post: ParsedPost;
   sortIndex?: string;
+}
+
+export const TAG_COLORS = ['purple', 'magenta', 'blue', 'teal', 'amber', 'rose'] as const;
+export type TagColor = (typeof TAG_COLORS)[number];
+
+export interface Tag {
+  id: string;
+  name: string;
+  color: TagColor;
+  order: number;
 }

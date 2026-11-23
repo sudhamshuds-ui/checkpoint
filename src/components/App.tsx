@@ -1,20 +1,31 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { DndContext, DragOverlay, PointerSensor, pointerWithin, useSensor, useSensors, type DragEndEvent, type Modifier } from '@dnd-kit/core';
-import { Toaster } from 'sonner';
+import {
+  closestCenter,
+  DndContext,
+  DragOverlay,
+  PointerSensor,
+  pointerWithin,
+  useSensor,
+  useSensors,
+  type CollisionDetection,
+  type DragEndEvent,
+  type Modifier,
+} from '@dnd-kit/core';
+import { arrayMove } from '@dnd-kit/sortable';
+import Lenis from 'lenis';
+import { Toaster, toast } from 'sonner';
 import { ArrowRight, Search } from 'lucide-react';
-import { filterView, useCounts, useFolders, usePosts } from '@/lib/hooks';
+import { filterView, useCounts, useFolders, usePosts, useTags } from '@/lib/hooks';
 import { useUI } from '@/lib/store';
-import { useData } from '@/lib/data';
+import { reorderFolders, useData } from '@/lib/data';
 import { moveToFolder, sendToInbox } from '@/lib/actions';
 import { plural } from '@/lib/format';
-import type { Post } from '@/lib/types';
-import { MobileNav, Sidebar } from './Sidebar';
 import { startSync, useExtension } from '@/lib/extension';
-import { toast } from 'sonner';
+import type { Folder, Post } from '@/lib/types';
+import { MobileNav, Sidebar } from './Sidebar';
 import { Masonry } from './Masonry';
-import { DragPreview } from './PostCard';
+import { DragPreview, type TileAction } from './PostCard';
 import { PostDialog } from './PostDialog';
-import { Triage } from './Triage';
 
 /** Pins the drag preview just below and right of the cursor, so the folder under the pointer stays visible. */
 const besideCursor: Modifier = ({ activatorEvent, draggingNodeRect, transform }) => {
@@ -26,6 +37,12 @@ const besideCursor: Modifier = ({ activatorEvent, draggingNodeRect, transform })
   };
 };
 
+/* Posts drop onto whatever folder is under the pointer; folders being reordered snap to the closest slot. */
+const collision: CollisionDetection = (args) =>
+  String(args.active.id).startsWith('folder:')
+    ? closestCenter({ ...args, droppableContainers: args.droppableContainers.filter((c) => String(c.id).startsWith('folder:')) })
+    : pointerWithin(args);
+
 export function App() {
   const posts = usePosts();
   const folders = useFolders();
@@ -34,19 +51,51 @@ export function App() {
   const loadError = useData((s) => s.error);
   const [dragging, setDragging] = useState<Post | null>(null);
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }));
+  const mainRef = useRef<HTMLElement>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
+  const lenisRef = useRef<Lenis | null>(null);
 
-  // A folder that no longer exists (deleted elsewhere) falls back to All saves.
+  // Smooth, eased scrolling on the board. Skipped when the system asks for reduced motion.
+  useEffect(() => {
+    if (!mainRef.current || !contentRef.current || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const lenis = new Lenis({ wrapper: mainRef.current, content: contentRef.current, autoRaf: true, lerp: 0.12 });
+    lenisRef.current = lenis;
+    return () => {
+      lenis.destroy();
+      lenisRef.current = null;
+    };
+  }, []);
+
+  // A new view starts at the top.
+  useEffect(() => {
+    if (lenisRef.current) lenisRef.current.scrollTo(0, { immediate: true });
+    else mainRef.current?.scrollTo({ top: 0 });
+  }, [view]);
+
+  // A folder that no longer exists (deleted elsewhere) falls back to My feed.
   useEffect(() => {
     if (view.kind === 'folder' && folders.length && !folders.some((f) => f.id === view.folderId)) {
-      useUI.getState().setView({ kind: 'all' });
+      useUI.getState().setView({ kind: 'feed' });
     }
   }, [view, folders]);
 
+  function onDragStart(id: string) {
+    if (id.startsWith('post:')) setDragging(posts?.find((p) => `post:${p.id}` === id) ?? null);
+  }
+
   function onDragEnd({ active, over }: DragEndEvent) {
     setDragging(null);
-    const post = posts?.find((p) => p.id === active.id);
-    if (!post || !over) return;
-    const target = String(over.id);
+    const activeId = String(active.id);
+    const target = over ? String(over.id) : null;
+    if (!target) return;
+    if (activeId.startsWith('folder:')) {
+      const ids = folders.map((f) => `folder:${f.id}`);
+      const from = ids.indexOf(activeId), to = ids.indexOf(target);
+      if (from !== -1 && to !== -1 && from !== to) reorderFolders(arrayMove(folders, from, to).map((f) => f.id));
+      return;
+    }
+    const post = posts?.find((p) => `post:${p.id}` === activeId);
+    if (!post) return;
     if (target === 'inbox') sendToInbox(post);
     else if (target.startsWith('folder:')) {
       const folder = folders.find((f) => `folder:${f.id}` === target);
@@ -57,25 +106,28 @@ export function App() {
   return (
     <DndContext
       sensors={sensors}
-      collisionDetection={pointerWithin}
-      onDragStart={({ active }) => setDragging(posts?.find((p) => p.id === active.id) ?? null)}
+      collisionDetection={collision}
+      onDragStart={({ active }) => onDragStart(String(active.id))}
       onDragCancel={() => setDragging(null)}
       onDragEnd={onDragEnd}
     >
-      <div className="flex h-screen overflow-hidden">
+      <div className="flex h-dvh overflow-hidden">
         <Sidebar folders={folders} counts={counts} />
-        <main className="min-w-0 flex-1 overflow-y-auto [scrollbar-gutter:stable]">
-          <MobileNav folders={folders} counts={counts} />
-          {loadError ? (
-            <p className="py-24 text-center text-sm text-muted">Couldn't load your saves: {loadError}</p>
-          ) : (
-            posts && <MainView posts={posts} folders={folders} inboxCount={counts.inbox} />
-          )}
+        <main ref={mainRef} className="min-w-0 flex-1 overflow-y-auto [scrollbar-gutter:stable]">
+          <div ref={contentRef}>
+            <MobileNav folders={folders} counts={counts} />
+            {loadError ? (
+              <p className="py-24 text-center text-sm text-muted">Couldn't load your saves: {loadError}</p>
+            ) : (
+              posts && <MainView posts={posts} folders={folders} />
+            )}
+          </div>
         </main>
       </div>
-      <DragOverlay dropAnimation={null} modifiers={[besideCursor]} className="pointer-events-none">{dragging && <DragPreview post={dragging} />}</DragOverlay>
+      <DragOverlay dropAnimation={null} modifiers={[besideCursor]} className="pointer-events-none">
+        {dragging && <DragPreview post={dragging} />}
+      </DragOverlay>
       <PostDialog />
-      <Triage posts={posts ?? []} />
       <Toaster
         position="bottom-center"
         toastOptions={{
@@ -87,19 +139,21 @@ export function App() {
   );
 }
 
-function MainView({ posts, folders, inboxCount }: { posts: Post[]; folders: ReturnType<typeof useFolders>; inboxCount: number }) {
+function MainView({ posts, folders }: { posts: Post[]; folders: Folder[] }) {
   const view = useUI((s) => s.view);
   const query = useUI((s) => s.query);
   const setQuery = useUI((s) => s.setQuery);
   const setVisibleIds = useUI((s) => s.setVisibleIds);
-  const setTriageOpen = useUI((s) => s.setTriageOpen);
+  const tags = useTags();
   const searchRef = useRef<HTMLInputElement>(null);
+  const searchable = view.kind !== 'inbox';
 
-  const visible = useMemo(() => filterView(posts, view, query), [posts, view, query]);
+  const visible = useMemo(() => filterView(posts, view, query, tags), [posts, view, query, tags]);
   useEffect(() => setVisibleIds(visible.map((p) => p.id)), [visible, setVisibleIds]);
 
-  // "/" jumps to search, like most tools people already use.
+  // "/" jumps to search where there is one.
   useEffect(() => {
+    if (!searchable) return;
     const onKey = (e: KeyboardEvent) => {
       if (e.key !== '/' || (e.target as HTMLElement).closest('input, textarea, [role="dialog"]')) return;
       e.preventDefault();
@@ -107,29 +161,26 @@ function MainView({ posts, folders, inboxCount }: { posts: Post[]; folders: Retu
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, []);
-
-  const folder = view.kind === 'folder' ? folders.find((f) => f.id === view.folderId) : undefined;
-  const title = view.kind === 'inbox' ? 'Inbox' : view.kind === 'all' ? 'All saves' : folder?.name ?? '';
-  const total = filterView(posts, view, '').length;
-  const subtitle =
-    view.kind === 'inbox'
-      ? total
-        ? `${plural(total, 'post')} waiting to be sorted`
-        : 'Everything is sorted'
-      : plural(total, 'post');
+  }, [searchable]);
 
   if (posts.length === 0) return <Welcome />;
 
+  const folder = view.kind === 'folder' ? folders.find((f) => f.id === view.folderId) : undefined;
+  const title = view.kind === 'inbox' ? 'X bookmarks' : view.kind === 'feed' ? 'My feed' : folder?.name ?? '';
+  const unsorted = view.kind === 'inbox' ? visible.length : 0;
+  const action: TileAction = view.kind === 'inbox' ? 'sort' : view.kind === 'feed' ? 'folder' : 'none';
+
   return (
     <>
-      <header className="sticky top-0 z-10 flex flex-wrap items-end justify-between gap-x-6 gap-y-3 bg-bg/85 px-4 pt-5 pb-4 backdrop-blur-lg md:px-8 md:pt-8 md:pb-5">
+      <header className="sticky top-0 z-10 flex flex-wrap items-end justify-between gap-x-6 gap-y-3 bg-bg/80 px-4 pt-6 pb-6 backdrop-blur-xl md:px-14 md:pt-10">
         <div className="min-w-0">
           <h1 className="truncate text-2xl font-semibold tracking-[-0.02em]">{title}</h1>
-          <p className="tabular mt-0.5 text-sm text-muted">{subtitle}</p>
+          {view.kind === 'inbox' && (
+            <p className="tabular mt-1 text-sm text-muted">{unsorted ? `${plural(unsorted, 'post')} waiting to be sorted` : 'Everything is sorted'}</p>
+          )}
         </div>
-        <div className="flex w-full items-center gap-2 sm:w-auto">
-          <label className="relative flex min-w-0 flex-1 items-center sm:flex-none">
+        {searchable && (
+          <label className="relative flex w-full items-center sm:w-72">
             <Search size={15} className="pointer-events-none absolute left-2.5 text-faint" />
             <input
               ref={searchRef}
@@ -137,35 +188,26 @@ function MainView({ posts, folders, inboxCount }: { posts: Post[]; folders: Retu
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               onKeyDown={(e) => e.key === 'Escape' && (setQuery(''), e.currentTarget.blur())}
-              placeholder="Search captions, notes, people"
-              className="h-9 w-full rounded-lg sm:w-72 bg-surface pr-8 pl-8 text-sm shadow-card outline-none placeholder:text-faint focus:ring-2 focus:ring-accent/40"
+              placeholder="Search tags, notes, people"
+              className="h-9 w-full rounded-lg border border-line bg-surface pr-8 pl-8 text-sm outline-none placeholder:text-faint focus:ring-2 focus:ring-accent/50"
             />
-            {!query && (
-              <kbd className="pointer-events-none absolute right-2 rounded border border-line px-1 font-mono text-[11px] text-faint">/</kbd>
-            )}
+            {!query && <kbd className="pointer-events-none absolute right-2 rounded border border-line px-1 font-mono text-[11px] text-faint">/</kbd>}
           </label>
-          {view.kind === 'inbox' && inboxCount > 0 && (
-            <button
-              type="button"
-              onClick={() => setTriageOpen(true)}
-              className="press flex h-9 shrink-0 items-center gap-1.5 rounded-lg bg-accent px-3.5 text-sm font-medium text-white hover:brightness-105"
-            >
-              Sort inbox <ArrowRight size={15} />
-            </button>
-          )}
-        </div>
+        )}
       </header>
 
-      <section className="px-4 pt-1 pb-20 md:px-8">
+      <section className="px-4 pb-20 md:px-14">
         {visible.length > 0 ? (
-          <Masonry posts={visible} folders={folders} showFolders={view.kind === 'all'} />
+          <Masonry posts={visible} folders={folders} action={action} />
         ) : (
           <Empty>
-            {query
+            {query && searchable
               ? `Nothing matches “${query}”.`
               : view.kind === 'inbox'
-                ? 'Inbox clear. New bookmarks land here until you file them.'
-                : 'Drag posts onto this folder in the sidebar, or use Folder on any post.'}
+                ? 'All sorted. New bookmarks from X land here.'
+                : view.kind === 'feed'
+                  ? 'Nothing sorted yet. Hover a post in X bookmarks and press Sort.'
+                  : 'Drag posts onto this folder, or pick it from Sort on any post.'}
           </Empty>
         )}
       </section>

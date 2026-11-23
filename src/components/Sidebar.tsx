@@ -1,6 +1,8 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import clsx from 'clsx';
 import { useDroppable } from '@dnd-kit/core';
+import { SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import { Menu } from '@base-ui/react/menu';
 import { AlertDialog } from '@base-ui/react/alert-dialog';
 import { Dialog } from '@base-ui/react/dialog';
@@ -17,7 +19,7 @@ import { supabase } from '@/web/client';
 
 interface Props {
   folders: Folder[];
-  counts: { inbox: number; all: number; byFolder: Map<string, number> };
+  counts: { inbox: number; feed: number; byFolder: Map<string, number> };
 }
 
 export function Sidebar({ folders, counts }: Props) {
@@ -31,8 +33,8 @@ export function Sidebar({ folders, counts }: Props) {
       </div>
 
       <nav className="flex flex-col gap-px px-3" aria-label="Views">
-        <NavRow view={{ kind: 'inbox' }} dropId="inbox" icon={<Inbox size={16} strokeWidth={1.75} />} label="Inbox" count={counts.inbox} highlight />
-        <NavRow view={{ kind: 'all' }} icon={<LayoutGrid size={16} strokeWidth={1.75} />} label="All saves" count={counts.all} />
+        <NavRow view={{ kind: 'inbox' }} dropId="inbox" icon={<Inbox size={16} strokeWidth={1.75} />} label="X bookmarks" count={counts.inbox} highlight />
+        <NavRow view={{ kind: 'feed' }} icon={<LayoutGrid size={16} strokeWidth={1.75} />} label="My feed" count={counts.feed} />
       </nav>
 
       <div className="mt-6 flex items-center justify-between pr-3 pl-5">
@@ -48,9 +50,12 @@ export function Sidebar({ folders, counts }: Props) {
       </div>
 
       <div className="mt-1 flex min-h-0 flex-1 flex-col gap-px overflow-y-auto px-3 pb-4">
-        {folders.map((folder) => (
-          <FolderRow key={folder.id} folder={folder} count={counts.byFolder.get(folder.id) ?? 0} />
-        ))}
+        {/* Drag a folder up or down to reorder; drop a post on one to file it. */}
+        <SortableContext items={folders.map((f) => `folder:${f.id}`)} strategy={verticalListSortingStrategy}>
+          {folders.map((folder) => (
+            <FolderRow key={folder.id} folder={folder} count={counts.byFolder.get(folder.id) ?? 0} />
+          ))}
+        </SortableContext>
         {creating ? (
           <NameInput
             placeholder="Folder name"
@@ -68,7 +73,7 @@ export function Sidebar({ folders, counts }: Props) {
               onClick={() => setCreating(true)}
               className="rounded-lg px-2 py-2 text-left text-[13px] leading-snug text-muted hover:bg-sunken"
             >
-              Make folders like Motion, Interactions or Branding, then drag posts onto them.
+              Make folders like Motion, Interactions or Branding. Then sort posts into them from X bookmarks.
             </button>
           )
         )}
@@ -84,8 +89,8 @@ export function MobileNav({ folders, counts }: Props) {
   const current = useUI((s) => s.view);
   const setView = useUI((s) => s.setView);
   const items: { view: View; label: string; count: number }[] = [
-    { view: { kind: 'inbox' }, label: 'Inbox', count: counts.inbox },
-    { view: { kind: 'all' }, label: 'All saves', count: counts.all },
+    { view: { kind: 'inbox' }, label: 'X bookmarks', count: counts.inbox },
+    { view: { kind: 'feed' }, label: 'My feed', count: counts.feed },
     ...folders.map((f) => ({ view: { kind: 'folder', folderId: f.id } as View, label: f.name, count: counts.byFolder.get(f.id) ?? 0 })),
   ];
   return (
@@ -125,6 +130,7 @@ function NavRow({
   count,
   highlight,
   trailing,
+  sortable,
 }: {
   view: View;
   dropId?: string;
@@ -133,19 +139,25 @@ function NavRow({
   count: number;
   highlight?: boolean;
   trailing?: ReactNode;
+  /** Folder rows are sortable: they bring their own node ref, drag handlers and transform. */
+  sortable?: ReturnType<typeof useSortable>;
 }) {
   const current = useUI((s) => s.view);
   const setView = useUI((s) => s.setView);
-  const { setNodeRef, isOver } = useDroppable({ id: dropId ?? `view:${label}`, disabled: !dropId });
+  const droppable = useDroppable({ id: dropId ?? `view:${label}`, disabled: !dropId || Boolean(sortable) });
   const active = isActive(current, view);
+  const isOver = sortable ? sortable.isOver && !String(sortable.active?.id).startsWith('folder:') : droppable.isOver;
 
   return (
     <div
-      ref={setNodeRef}
+      ref={sortable ? sortable.setNodeRef : droppable.setNodeRef}
+      {...(sortable ? { ...sortable.attributes, ...sortable.listeners, role: undefined, tabIndex: undefined } : {})}
+      style={sortable ? { transform: CSS.Translate.toString(sortable.transform), transition: sortable.transition } : undefined}
       className={clsx(
         'group relative flex h-8 items-center rounded-lg transition-colors duration-100',
         active ? 'bg-sunken text-ink' : 'text-muted hover:bg-sunken/60 hover:text-ink',
         isOver && 'bg-accent-soft! text-accent-ink! ring-1 ring-accent/40',
+        sortable?.isDragging && 'relative z-10 bg-sunken! text-ink! shadow-pop',
       )}
     >
       <button
@@ -176,6 +188,7 @@ function FolderRow({ folder, count }: { folder: Folder; count: number }) {
   const [confirming, setConfirming] = useState(false);
   const setView = useUI((s) => s.setView);
   const view = useUI((s) => s.view);
+  const sortable = useSortable({ id: `folder:${folder.id}`, disabled: renaming });
 
   if (renaming) {
     return (
@@ -197,6 +210,7 @@ function FolderRow({ folder, count }: { folder: Folder; count: number }) {
         dropId={`folder:${folder.id}`}
         label={folder.name}
         count={count}
+        sortable={sortable}
         trailing={
           <Menu.Root>
             <Menu.Trigger
@@ -236,7 +250,7 @@ function FolderRow({ folder, count }: { folder: Folder; count: number }) {
                 onClick={async () => {
                   await deleteFolder(folder.id);
                   setConfirming(false);
-                  if (view.kind === 'folder' && view.folderId === folder.id) setView({ kind: 'all' });
+                  if (view.kind === 'folder' && view.folderId === folder.id) setView({ kind: 'feed' });
                 }}
               >
                 Delete folder
