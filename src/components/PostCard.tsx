@@ -1,4 +1,4 @@
-import { memo, useState, type PointerEvent, type ReactNode } from 'react';
+import { memo, useEffect, useState, type PointerEvent, type ReactNode } from 'react';
 import type React from 'react';
 import clsx from 'clsx';
 import { useDraggable } from '@dnd-kit/core';
@@ -49,12 +49,27 @@ export const PostCard = memo(function PostCard({ post, folders, action, entering
   const actionLabel = action === 'sort' ? 'Sort' : names.length ? `${names[0]}${names.length > 1 ? ` +${names.length - 1}` : ''}` : 'Sort';
 
   const onPointerEnter = (e: PointerEvent) => e.pointerType === 'mouse' && setHovered(true);
+  /* Controls follow real hover (which stays correct while the page scrolls under a still pointer),
+     keyboard focus (focus-visible, so a mouse click doesn't pin them), or an open folder menu. */
+  const reveal = menuOpen
+    ? 'opacity-100'
+    : 'pointer-events-none opacity-0 [@media(hover:hover)]:group-hover:pointer-events-auto [@media(hover:hover)]:group-hover:opacity-100 group-has-focus-visible:pointer-events-auto group-has-focus-visible:opacity-100';
   const onPointerLeave = () => setHovered(false);
+  useEffect(() => {
+    if (!hovered) return;
+    const clear = () => setHovered(false);
+    window.addEventListener('blur', clear);
+    document.addEventListener('visibilitychange', clear);
+    return () => {
+      window.removeEventListener('blur', clear);
+      document.removeEventListener('visibilitychange', clear);
+    };
+  }, [hovered]);
 
   const controls = (
     <>
       {action !== 'none' && (
-        <div className={clsx('absolute top-2 right-2 transition-opacity duration-150', active ? 'opacity-100' : 'pointer-events-none opacity-0 group-focus-within:pointer-events-auto group-focus-within:opacity-100')}>
+        <div className={clsx('absolute top-2 right-2 transition-opacity duration-150', reveal)}>
           <FolderPopover
             postId={post.id}
             open={menuOpen}
@@ -71,7 +86,7 @@ export const PostCard = memo(function PostCard({ post, folders, action, entering
           />
         </div>
       )}
-      <div className={clsx('absolute right-2 bottom-2 transition-opacity duration-150', active ? 'opacity-100' : 'pointer-events-none opacity-0 group-focus-within:pointer-events-auto group-focus-within:opacity-100')}>
+      <div className={clsx('absolute right-2 bottom-2 transition-opacity duration-150', reveal)}>
         <Pill
           icon
           danger
@@ -116,7 +131,7 @@ export const PostCard = memo(function PostCard({ post, folders, action, entering
 
           <div className="absolute bottom-2 left-2 flex gap-1">
             {current?.type === 'video' && (
-              <Badge className={clsx('transition-opacity duration-150', active && 'opacity-0')}>{duration(current.durationMs) || 'Video'}</Badge>
+              <Badge className={clsx('transition-opacity duration-150 [@media(hover:hover)]:group-hover:opacity-0', menuOpen && 'opacity-0')}>{duration(current.durationMs) || 'Video'}</Badge>
             )}
             {current?.type === 'gif' && <Badge>GIF</Badge>}
             {media.length > 1 && (
@@ -131,8 +146,8 @@ export const PostCard = memo(function PostCard({ post, folders, action, entering
             )}
           </div>
 
-          {media.length > 1 && active && (
-            <>
+          {media.length > 1 && (
+            <div className={clsx('transition-opacity duration-150', reveal)}>
               {index > 0 && (
                 <ImageArrow side="left" onClick={() => setIndex((i) => Math.max(0, i - 1))}>
                   <ChevronLeft size={16} />
@@ -143,7 +158,7 @@ export const PostCard = memo(function PostCard({ post, folders, action, entering
                   <ChevronRight size={16} />
                 </ImageArrow>
               )}
-            </>
+            </div>
           )}
           {controls}
         </div>
