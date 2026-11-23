@@ -6,7 +6,7 @@ import type { Media } from '@/lib/types';
 
 interface Props {
   media: Media;
-  /** Cards play video only while hovered; the detail view shows controls. */
+  /** Cards play video muted while hovered; the detail view plays it with sound and shows controls. */
   mode: 'card' | 'detail';
   playing?: boolean;
   className?: string;
@@ -28,6 +28,18 @@ export function MediaView({ media, mode, playing = false, className, fallbackHre
     if (playing) video.play().catch(() => undefined);
     else video.pause();
   }, [playing, mode]);
+
+  // An opened video starts playing with sound (opening it was a click). If the browser still
+  // refuses sound, it plays muted and the controls are there to unmute.
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video || mode !== 'detail' || media.type !== 'video') return;
+    video.play().catch((err: unknown) => {
+      if ((err as Error)?.name !== 'NotAllowedError') return;
+      video.muted = true;
+      video.play().catch(() => undefined);
+    });
+  }, [mode, media.type, isVideo]);
 
   if (imageFailed) {
     return (
@@ -51,7 +63,7 @@ export function MediaView({ media, mode, playing = false, className, fallbackHre
         autoPlay={mode === 'detail' && media.type === 'gif'}
         controls={mode === 'detail' && media.type === 'video'}
         playsInline
-        preload={mode === 'card' ? 'none' : 'metadata'}
+        preload={mode === 'card' ? 'none' : 'auto'}
         // If X won't serve the video here, fall back to its still frame instead of an error.
         onError={() => setVideoFailed(true)}
         onTimeUpdate={(e) => mode === 'card' && setProgress(e.currentTarget.currentTime / (e.currentTarget.duration || 1))}
