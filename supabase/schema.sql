@@ -36,6 +36,11 @@ create table if not exists public.profiles (
   updated_at timestamptz not null default now()
 );
 
+-- Newer Supabase projects don't grant table access automatically. Logged-in users get it here;
+-- the policies below still limit them to their own rows. Logged-out visitors get nothing.
+grant select, insert, update, delete on public.posts, public.folders, public.profiles to authenticated;
+revoke all on public.posts, public.folders, public.profiles from anon;
+
 alter table public.posts    enable row level security;
 alter table public.folders  enable row level security;
 alter table public.profiles enable row level security;
