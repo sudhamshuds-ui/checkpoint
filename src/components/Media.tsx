@@ -59,7 +59,7 @@ export function MediaView({ media, mode, playing = false, className, fallbackHre
       />
       {mode === 'card' && playing && (
         <span aria-hidden className="pointer-events-none absolute inset-x-0 bottom-0 h-0.5 bg-white/25">
-          <span className="block h-full origin-left bg-white" style={{ transform: `scaleX(${progress})` }} />
+          <span className="block h-full origin-left bg-white transition-transform duration-[250ms] ease-linear" style={{ transform: `scaleX(${progress})` }} />
         </span>
       )}
       </>

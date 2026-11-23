@@ -18,6 +18,8 @@ interface Props {
   post: Post;
   folders: Map<string, Folder>;
   action: TileAction;
+  /** True for posts that arrived while this view was open (a live bookmark, a sync, an Undo). */
+  entering?: boolean;
 }
 
 // Controls on a tile must not start a drag or open the post.
@@ -25,11 +27,17 @@ const stop = (e: { stopPropagation: () => void }) => e.stopPropagation();
 
 export { Pill };
 
-export const PostCard = memo(function PostCard({ post, folders, action }: Props) {
+export const PostCard = memo(function PostCard({ post, folders, action, entering }: Props) {
   const openPost = useUI((s) => s.openPost);
   const [hovered, setHovered] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [index, setIndex] = useState(0);
+  const [leaving, setLeaving] = useState(false);
+  // Plays the tile's exit, then lets the change through, so a sorted or removed post visibly leaves.
+  const leave = async () => {
+    setLeaving(true);
+    await new Promise((r) => setTimeout(r, 160));
+  };
   const { setNodeRef, listeners, attributes, isDragging } = useDraggable({ id: `post:${post.id}` });
 
   const visual = visualFor(post);
@@ -51,6 +59,10 @@ export const PostCard = memo(function PostCard({ post, folders, action }: Props)
             postId={post.id}
             open={menuOpen}
             onOpenChange={setMenuOpen}
+            beforePick={async (added) => {
+              // Sorting from X bookmarks takes the post out of this view; changing folders in My feed doesn't.
+              if (added && action === 'sort' && post.folderIds.length === 0) await leave();
+            }}
             trigger={
               <Pill selected={menuOpen} label={action === 'sort' ? 'Sort into a folder' : `In ${names.join(', ')}. Change folder`}>
                 {actionLabel}
@@ -60,7 +72,15 @@ export const PostCard = memo(function PostCard({ post, folders, action }: Props)
         </div>
       )}
       <div className={clsx('absolute right-2 bottom-2 transition-opacity duration-150', active ? 'opacity-100' : 'pointer-events-none opacity-0 group-focus-within:pointer-events-auto group-focus-within:opacity-100')}>
-        <Pill icon danger label="Remove from Checkpoint" onClick={() => removePost(post)}>
+        <Pill
+          icon
+          danger
+          label="Remove from Checkpoint"
+          onClick={async () => {
+            await leave();
+            removePost(post);
+          }}
+        >
           <Trash2 size={14} strokeWidth={2} />
         </Pill>
       </div>
@@ -82,6 +102,8 @@ export const PostCard = memo(function PostCard({ post, folders, action }: Props)
       className={clsx(
         'group relative cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-bg',
         isDragging && 'opacity-40',
+        leaving && 'tile-leaving',
+        entering && 'tile-enter',
       )}
     >
       {visual ? (
@@ -93,7 +115,9 @@ export const PostCard = memo(function PostCard({ post, folders, action }: Props)
           ) : null}
 
           <div className="absolute bottom-2 left-2 flex gap-1">
-            {current?.type === 'video' && !active && <Badge>{duration(current.durationMs) || 'Video'}</Badge>}
+            {current?.type === 'video' && (
+              <Badge className={clsx('transition-opacity duration-150', active && 'opacity-0')}>{duration(current.durationMs) || 'Video'}</Badge>
+            )}
             {current?.type === 'gif' && <Badge>GIF</Badge>}
             {media.length > 1 && (
               <Badge>
@@ -155,7 +179,6 @@ function Pill({ children, label, icon, selected, danger, onClick, onPointerDown,
         'press flex h-7 items-center justify-center rounded-full text-xs font-medium',
         icon ? 'w-7' : 'max-w-44 px-3',
         selected ? 'bg-ink text-bg' : danger ? 'bg-black/60 text-white backdrop-blur-md hover:bg-danger-strong' : 'bg-black/60 text-white backdrop-blur-md hover:bg-black/75',
-        'transition-[background-color,transform] duration-150',
         className,
       )}
     >
@@ -184,9 +207,9 @@ function ImageArrow({ side, onClick, children }: { side: 'left' | 'right'; onCli
   );
 }
 
-function Badge({ children }: { children: ReactNode }) {
+function Badge({ children, className }: { children: ReactNode; className?: string }) {
   return (
-    <span className="tabular flex h-5 items-center gap-1 rounded-full bg-black/60 px-1.5 text-[11px] font-medium text-white backdrop-blur-md">
+    <span className={clsx(className, 'tabular flex h-5 items-center gap-1 rounded-full bg-black/60 px-1.5 text-[11px] font-medium text-white backdrop-blur-md')}>
       {children}
     </span>
   );

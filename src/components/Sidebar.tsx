@@ -192,7 +192,7 @@ function FolderRow({ folder, count }: { folder: Folder; count: number }) {
   const [confirming, setConfirming] = useState(false);
   const setView = useUI((s) => s.setView);
   const view = useUI((s) => s.view);
-  const sortable = useSortable({ id: `folder:${folder.id}`, disabled: renaming });
+  const sortable = useSortable({ id: `folder:${folder.id}`, disabled: renaming, transition: { duration: 200, easing: 'cubic-bezier(0.23, 1, 0.32, 1)' } });
 
   if (renaming) {
     return (
@@ -226,7 +226,7 @@ function FolderRow({ folder, count }: { folder: Folder; count: number }) {
             </Menu.Trigger>
             <Menu.Portal>
               <Menu.Positioner sideOffset={4} align="start" className="z-50">
-                <Menu.Popup className="min-w-36 origin-[var(--transform-origin)] rounded-xl bg-surface p-1 shadow-pop outline-none transition-[transform,opacity] duration-150 ease-[var(--ease-out)] data-[ending-style]:scale-[0.97] data-[ending-style]:opacity-0 data-[starting-style]:scale-[0.97] data-[starting-style]:opacity-0">
+                <Menu.Popup className="min-w-36 origin-[var(--transform-origin)] rounded-xl bg-surface p-1 shadow-pop outline-none transition-[scale,opacity] duration-150 ease-[var(--ease-out)] data-[ending-style]:scale-[0.97] data-[ending-style]:opacity-0 data-[starting-style]:scale-[0.97] data-[starting-style]:opacity-0">
                   <MenuItem onClick={() => setRenaming(true)}>Rename</MenuItem>
                   <MenuItem onClick={() => setConfirming(true)} danger>
                     Delete folder
@@ -240,7 +240,7 @@ function FolderRow({ folder, count }: { folder: Folder; count: number }) {
       <AlertDialog.Root open={confirming} onOpenChange={setConfirming}>
         <AlertDialog.Portal>
           <AlertDialog.Backdrop className="fixed inset-0 z-50 bg-black/40 transition-opacity duration-200 data-[ending-style]:opacity-0 data-[starting-style]:opacity-0" />
-          <AlertDialog.Popup className="fixed top-1/2 left-1/2 z-50 w-[360px] -translate-x-1/2 -translate-y-1/2 rounded-2xl bg-surface p-5 shadow-pop outline-none transition-[transform,opacity] duration-200 ease-[var(--ease-out)] data-[ending-style]:scale-[0.97] data-[ending-style]:opacity-0 data-[starting-style]:scale-[0.97] data-[starting-style]:opacity-0">
+          <AlertDialog.Popup className="fixed top-1/2 left-1/2 z-50 w-[360px] -translate-x-1/2 -translate-y-1/2 rounded-2xl bg-surface p-5 shadow-pop outline-none transition-[scale,opacity] duration-200 ease-[var(--ease-out)] data-[ending-style]:scale-[0.97] data-[ending-style]:opacity-0 data-[starting-style]:scale-[0.97] data-[starting-style]:opacity-0">
             <AlertDialog.Title className="text-[15px] font-semibold">Delete “{folder.name}”?</AlertDialog.Title>
             <AlertDialog.Description className="mt-1.5 text-sm leading-relaxed text-muted">
               {count > 0
@@ -410,7 +410,7 @@ function ConnectDialog({ open, onOpenChange, onConnected }: { open: boolean; onO
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
       <Dialog.Portal>
         <Dialog.Backdrop className="fixed inset-0 z-50 bg-black/40 transition-opacity duration-200 data-[ending-style]:opacity-0 data-[starting-style]:opacity-0" />
-        <Dialog.Popup className="fixed top-1/2 left-1/2 z-50 w-[380px] -translate-x-1/2 -translate-y-1/2 rounded-2xl bg-surface p-5 shadow-pop outline-none transition-[transform,opacity] duration-200 ease-[var(--ease-out)] data-[ending-style]:scale-[0.97] data-[ending-style]:opacity-0 data-[starting-style]:scale-[0.97] data-[starting-style]:opacity-0">
+        <Dialog.Popup className="fixed top-1/2 left-1/2 z-50 w-[380px] -translate-x-1/2 -translate-y-1/2 rounded-2xl bg-surface p-5 shadow-pop outline-none transition-[scale,opacity] duration-200 ease-[var(--ease-out)] data-[ending-style]:scale-[0.97] data-[ending-style]:opacity-0 data-[starting-style]:scale-[0.97] data-[starting-style]:opacity-0">
           <Dialog.Title className="text-[15px] font-semibold">Connect the extension</Dialog.Title>
           <Dialog.Description className="mt-1.5 text-sm leading-relaxed text-muted">
             Enter your Checkpoint password once so the extension in this Chrome can save bookmarks to your account.

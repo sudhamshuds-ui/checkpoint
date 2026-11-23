@@ -97,11 +97,45 @@ body {
   background: var(--sunken);
 }
 
+/* A post leaving the current view (sorted out of X bookmarks, or removed) fades and settles before it goes. */
+.tile-leaving {
+  opacity: 0;
+  scale: 0.97;
+  pointer-events: none;
+  transition: opacity 150ms var(--ease-out), scale 150ms var(--ease-out);
+}
+
+/* A post that arrives while you're looking (live bookmark, sync, Undo) eases in so it gets noticed. */
+.tile-enter {
+  transition: opacity 200ms var(--ease-out), scale 200ms var(--ease-out);
+  @starting-style {
+    opacity: 0;
+    scale: 0.97;
+  }
+}
+
+/* Reduced motion: fewer and gentler, not none. Fades and color changes stay; scaling, the folder menu
+   morph and the spinning icon go. (Smooth scrolling and the drop shrink check this setting in JS.) */
 @media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
-    transition-duration: 1ms !important;
-    animation-duration: 1ms !important;
+  [data-starting-style],
+  [data-ending-style],
+  .tile-leaving,
+  .tile-enter {
+    scale: none !important;
+  }
+  .morph-popup {
+    clip-path: none !important;
+  }
+  .press:active {
+    transform: none;
+  }
+  .animate-spin {
+    animation: reduced-pulse 1.4s ease-in-out infinite;
+  }
+}
+
+@keyframes reduced-pulse {
+  50% {
+    opacity: 0.4;
   }
 }

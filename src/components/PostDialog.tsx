@@ -63,7 +63,7 @@ export function PostDialog() {
   return (
     <Dialog.Root open={Boolean(openPostId)} onOpenChange={(open) => !open && openPost(null)}>
       <Dialog.Portal>
-        <Dialog.Backdrop className="fixed inset-0 z-40 bg-black/[0.72] backdrop-blur-[32px] transition-opacity duration-200 data-[ending-style]:opacity-0 data-[ending-style]:duration-150 data-[starting-style]:opacity-0" />
+        <Dialog.Backdrop className="fixed inset-0 z-40 bg-black/[0.72] transition-opacity duration-200 data-[ending-style]:opacity-0 data-[ending-style]:duration-150 data-[starting-style]:opacity-0" />
         <Dialog.Popup className="fixed inset-2 z-40 outline-none transition-[scale,opacity] duration-200 ease-[var(--ease-out)] data-[ending-style]:scale-[0.98] data-[ending-style]:opacity-0 data-[ending-style]:duration-150 data-[starting-style]:scale-[0.98] data-[starting-style]:opacity-0 md:inset-auto md:top-1/2 md:left-1/2 md:h-[min(720px,calc(100dvh-64px))] md:w-[min(1040px,calc(100vw-176px))] md:-translate-x-1/2 md:-translate-y-1/2">
           {post && (
             <>

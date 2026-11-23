@@ -39,7 +39,7 @@ export function AddTag({ post }: { post: Post }) {
       </Popover.Trigger>
       <Popover.Portal>
         <Popover.Positioner side="bottom" align="start" sideOffset={8} className="z-50">
-          <Popover.Popup className="w-60 origin-[var(--transform-origin)] rounded-xl border border-line bg-surface shadow-pop outline-none transition-[transform,opacity] duration-150 ease-[var(--ease-out)] data-[ending-style]:scale-[0.96] data-[ending-style]:opacity-0 data-[ending-style]:duration-100 data-[starting-style]:scale-[0.96] data-[starting-style]:opacity-0">
+          <Popover.Popup className="w-60 origin-[var(--transform-origin)] rounded-xl border border-line bg-surface shadow-pop outline-none transition-[scale,opacity] duration-150 ease-[var(--ease-out)] data-[ending-style]:scale-[0.96] data-[ending-style]:opacity-0 data-[ending-style]:duration-100 data-[starting-style]:scale-[0.96] data-[starting-style]:opacity-0">
             <TagPicker postId={post.id} />
           </Popover.Popup>
         </Popover.Positioner>

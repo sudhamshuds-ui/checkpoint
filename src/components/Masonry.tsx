@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { useElementWidth } from '@/lib/hooks';
 import type { Folder, Post } from '@/lib/types';
 import { PostCard, type TileAction } from './PostCard';
@@ -17,7 +17,16 @@ function estimateHeight(post: Post, width: number) {
   return 96 + lines * 22;
 }
 
-export function Masonry({ posts, folders, action }: { posts: Post[]; folders: Folder[]; action: TileAction }) {
+export function Masonry({ posts, folders, action, viewKey }: { posts: Post[]; folders: Folder[]; action: TileAction; viewKey: string }) {
+  // Animate only posts that weren't on screen a moment ago: a live bookmark, a sync, an Undo.
+  // Opening a view (or switching views) renders still.
+  const shown = useRef<{ key: string; ids: Set<string> } | null>(null);
+  if (!shown.current || shown.current.key !== viewKey) shown.current = { key: viewKey, ids: new Set(posts.map((p) => p.id)) };
+  const seen = shown.current.ids;
+  useEffect(() => {
+    if (shown.current) shown.current.ids = new Set(posts.map((p) => p.id));
+  }, [posts]);
+
   const [ref, width] = useElementWidth<HTMLDivElement>();
   const folderMap = useMemo(() => new Map(folders.map((f) => [f.id, f])), [folders]);
   const { count, gap } = layout(width);
@@ -41,7 +50,7 @@ export function Masonry({ posts, folders, action }: { posts: Post[]; folders: Fo
         columns.map((column, i) => (
           <div key={i} className="flex min-w-0 flex-1 flex-col" style={{ gap }}>
             {column.map((post) => (
-              <PostCard key={post.id} post={post} folders={folderMap} action={action} />
+              <PostCard key={post.id} post={post} folders={folderMap} action={action} entering={!seen.has(post.id)} />
             ))}
           </div>
         ))}

@@ -8,6 +8,7 @@ import {
   useSensor,
   useSensors,
   type CollisionDetection,
+  type DropAnimation,
   type DragEndEvent,
   type Modifier,
 } from '@dnd-kit/core';
@@ -43,6 +44,8 @@ const collision: CollisionDetection = (args) =>
     ? closestCenter({ ...args, droppableContainers: args.droppableContainers.filter((c) => String(c.id).startsWith('folder:')) })
     : pointerWithin(args);
 
+const reducedMotion = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
+
 export function App() {
   const posts = usePosts();
   const folders = useFolders();
@@ -54,10 +57,22 @@ export function App() {
   const mainRef = useRef<HTMLElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
   const lenisRef = useRef<Lenis | null>(null);
+  // Where a dragged post was dropped, so the preview can shrink into that folder.
+  const dropTarget = useRef<DOMRect | null>(null);
+  const dropAnimation: DropAnimation = ({ dragOverlay }) => {
+    const target = dropTarget.current;
+    const node = dragOverlay.node.firstElementChild as HTMLElement | null;
+    if (!target || !node) return;
+    const from = node.getBoundingClientRect();
+    const dx = target.left + 28 - (from.left + from.width / 2);
+    const dy = target.top + target.height / 2 - (from.top + from.height / 2);
+    const end = reducedMotion() ? { opacity: 0 } : { opacity: 0, transform: `translate(${dx}px, ${dy}px) scale(0.2)` };
+    return node.animate([{ opacity: 1, transform: 'translate(0, 0) scale(1)' }, end], { duration: 200, easing: 'cubic-bezier(0.23, 1, 0.32, 1)', fill: 'forwards' }).finished.then(() => undefined);
+  };
 
   // Smooth, eased scrolling on the board. Skipped when the system asks for reduced motion.
   useEffect(() => {
-    if (!mainRef.current || !contentRef.current || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    if (!mainRef.current || !contentRef.current || reducedMotion()) return;
     const lenis = new Lenis({ wrapper: mainRef.current, content: contentRef.current, autoRaf: true, lerp: 0.12 });
     lenisRef.current = lenis;
     return () => {
@@ -84,7 +99,9 @@ export function App() {
   }
 
   function onDragEnd({ active, over }: DragEndEvent) {
-    setDragging(null);
+    // The preview stays rendered through the drop animation; the next drag replaces it.
+    const overId = over ? String(over.id) : '';
+    dropTarget.current = String(active.id).startsWith('post:') && (overId === 'inbox' || overId.startsWith('folder:')) && over ? new DOMRect(over.rect.left, over.rect.top, over.rect.width, over.rect.height) : null;
     const activeId = String(active.id);
     const target = over ? String(over.id) : null;
     if (!target) return;
@@ -96,11 +113,16 @@ export function App() {
     }
     const post = posts?.find((p) => `post:${p.id}` === activeId);
     if (!post) return;
-    if (target === 'inbox') sendToInbox(post);
-    else if (target.startsWith('folder:')) {
-      const folder = folders.find((f) => `folder:${f.id}` === target);
-      if (folder) moveToFolder(post, folder.id, folder.name, view.kind === 'folder' ? view.folderId : undefined);
-    }
+    const commit = () => {
+      if (target === 'inbox') sendToInbox(post);
+      else if (target.startsWith('folder:')) {
+        const folder = folders.find((f) => `folder:${f.id}` === target);
+        if (folder) moveToFolder(post, folder.id, folder.name, view.kind === 'folder' ? view.folderId : undefined);
+      }
+    };
+    // The drop animation needs the original tile on the page, so file the post once the preview has shrunk away.
+    if (dropTarget.current) setTimeout(commit, 200);
+    else commit();
   }
 
   return (
@@ -124,7 +146,7 @@ export function App() {
           </div>
         </main>
       </div>
-      <DragOverlay dropAnimation={null} modifiers={[besideCursor]} className="pointer-events-none">
+      <DragOverlay dropAnimation={dropAnimation} modifiers={[besideCursor]} className="pointer-events-none">
         {dragging && <DragPreview post={dragging} />}
       </DragOverlay>
       <PostDialog />
@@ -198,7 +220,7 @@ function MainView({ posts, folders }: { posts: Post[]; folders: Folder[] }) {
 
       <section className="px-4 pb-20 md:px-14">
         {visible.length > 0 ? (
-          <Masonry posts={visible} folders={folders} action={action} />
+          <Masonry posts={visible} folders={folders} action={action} viewKey={view.kind === 'folder' ? `folder:${view.folderId}` : view.kind} />
         ) : (
           <Empty>
             {query && searchable
