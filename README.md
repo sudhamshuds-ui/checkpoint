@@ -4,24 +4,24 @@ A personal inspiration hub. A Chrome extension that imports your X (Twitter) boo
 
 No X API key or paid plan needed. Everything stays in your browser.
 
-## Install (Chrome)
+## Install (Windows, one time)
 
-```bash
-pnpm install
-```
+1. Install [Git](https://git-scm.com/download/win) and [Node.js LTS](https://nodejs.org) with their default options.
+2. Open **Command Prompt** and run:
+   ```bat
+   cd %USERPROFILE%\Documents
+   git clone https://github.com/sudhamshuds-ui/checkpoint
+   ```
+3. Open `Documents\checkpoint` and double-click **Update Checkpoint.bat**.
+4. In Chrome, open `chrome://extensions`, turn on **Developer mode**, click **Load unpacked** and pick `Documents\checkpoint\.output\chrome-mv3`.
 
-```bash
-pnpm build
-```
+## Updating
 
-1. Open `chrome://extensions` and turn on **Developer mode** (top right).
-2. Click **Load unpacked** and pick the `.output/chrome-mv3` folder.
-3. Pin Checkpoint to the toolbar. Click it (or press `Ctrl/Cmd + Shift + O`) to open the dashboard.
-4. Click **Import from X**. Make sure you are logged in to x.com in this Chrome profile.
+Double-click **Update Checkpoint.bat**, then click the reload arrow on Checkpoint in `chrome://extensions` (or restart Chrome). Your posts, folders and notes are kept.
 
-After a rebuild, press the reload icon on the Checkpoint card in `chrome://extensions`.
+## Development
 
-For development with hot reload, `pnpm dev` launches a separate Chrome with the extension loaded.
+`pnpm dev` launches a separate Chrome with the extension and hot reload.
 
 ## How it works
 

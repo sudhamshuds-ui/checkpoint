@@ -6,6 +6,8 @@ export default defineConfig({
   modules: ['@wxt-dev/module-react'],
   vite: () => ({ plugins: [tailwindcss()] }),
   manifest: {
+    // Public key only. It pins the extension ID so saved posts survive reinstalls and moving the folder.
+    key: 'MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAldjm+IGNsl9vK5QTB1UKSo19juvz58BSDvfNftKT1jVX/I4xkyZEkCwwnSxzglzv7lfhRNSCH2FmuMi2MNE8tN5+sIbDlZ2Ay0j4a72F/D2CGV86hImMzDrYMvkIFPXNjJGVdddgzdm/T9N3WRDA1rnNCAjUE69bP+CfxckiITiu4h8h25jbAYqjp+JTsmGk9MTZaFRgedOv3CQJ+AyXdZ0LZl6xAnzkjTVghRypkeUhgOTp69xJaEzSyGkwqNND/KBY0Y4HuHYScd6z34JkyqJ9vveefCRYjfJLtYLKGEeKw+iSJdkBhllkExT1B5Ku7dWSufIp9WmHEcL4DS9cowIDAQAB',
     name: 'Checkpoint',
     description: 'Sort your X bookmarks into a calm, personal inspiration board.',
     permissions: ['storage', 'tabs'],
