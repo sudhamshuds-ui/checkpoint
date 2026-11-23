@@ -4,7 +4,7 @@ import { ArrowUpRight, ChevronLeft, ChevronRight, Copy, Link2 } from 'lucide-rea
 import { toast } from 'sonner';
 import { copyMedia } from '@/lib/clipboard';
 import { setNote } from '@/lib/actions';
-import { shortDate } from '@/lib/format';
+import { imageUrl, shortDate } from '@/lib/format';
 import type { Media, Post } from '@/lib/types';
 import { Avatar, MediaView } from './Media';
 
@@ -13,6 +13,10 @@ export function MediaStage({ post, startIndex = 0 }: { post: Post; startIndex?: 
   const media: Media[] = post.media.length ? post.media : post.quote?.media ?? [];
   const [index, setIndex] = useState(startIndex);
   useEffect(() => setIndex(startIndex), [post.id, startIndex]);
+  // Fetch the neighbouring images ahead of time so stepping through a carousel doesn't wait.
+  useEffect(() => {
+    for (const m of [media[index - 1], media[index + 1]]) if (m) new Image().src = imageUrl(m.url, 'large');
+  }, [media, index]);
 
   if (!media.length) {
     if (post.link?.image) {
@@ -30,6 +34,11 @@ export function MediaStage({ post, startIndex = 0 }: { post: Post; startIndex?: 
   }
 
   const current = media[Math.min(index, media.length - 1)];
+  // Size the frame from X's dimensions before the file arrives, so the Copy button sits in the
+  // image's corner (not the middle) and a dark placeholder holds the space while it loads.
+  const ratio = current.width > 0 && current.height > 0 ? current.width / current.height : null;
+  const frame = ratio ? { aspectRatio: ratio, width: `min(100%, calc(min(560px, 100dvh - 224px) * ${ratio}))` } : undefined;
+
   async function copy() {
     try {
       const what = await copyMedia(current);
@@ -41,8 +50,14 @@ export function MediaStage({ post, startIndex = 0 }: { post: Post; startIndex?: 
 
   return (
     <div className="relative flex h-full w-full items-center justify-center">
-      <div className="relative">
-        <MediaView key={current.url} media={current} mode="detail" fallbackHref={post.url} className="max-h-[min(560px,calc(100dvh-224px))] !w-auto max-w-full" />
+      <div className={clsx('relative', ratio && 'bg-sunken')} style={frame}>
+        <MediaView
+          key={current.url}
+          media={current}
+          mode="detail"
+          fallbackHref={post.url}
+          className={ratio ? undefined : 'max-h-[min(560px,calc(100dvh-224px))] !w-auto max-w-full'}
+        />
         <button
           type="button"
           onClick={copy}
@@ -105,16 +120,6 @@ export function PostText({ post, showText = true }: { post: Post; showText?: boo
         </span>
       </a>
       {showText && post.text && <p className="mt-4 text-[14.5px] leading-[1.55] whitespace-pre-line break-words">{post.text}</p>}
-      {post.quote && (
-        <a href={post.quote.url} target="_blank" rel="noreferrer" className="mt-4 block rounded-xl border border-line p-3 hover:bg-sunken/50">
-          <span className="flex items-center gap-1.5 text-[12.5px]">
-            <Avatar src={post.quote.author.avatar} />
-            <span className="font-medium">{post.quote.author.name}</span>
-            <span className="text-faint">@{post.quote.author.handle}</span>
-          </span>
-          <p className="mt-1.5 line-clamp-6 text-[13.5px] leading-[1.5] whitespace-pre-line text-muted">{post.quote.text}</p>
-        </a>
-      )}
       {post.link && (post.media.length > 0 || !post.link.image) && (
         <a href={post.link.url} target="_blank" rel="noreferrer" className="mt-4 flex items-center gap-2 rounded-xl border border-line p-3 text-[13px] hover:bg-sunken/50">
           <Link2 size={14} className="shrink-0 text-faint" />
