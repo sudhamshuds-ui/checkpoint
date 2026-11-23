@@ -15,9 +15,19 @@ No X API key or paid plan needed. Everything stays in your browser.
 3. Open `Documents\checkpoint` and double-click **Update Checkpoint.bat**.
 4. In Chrome, open `chrome://extensions`, turn on **Developer mode**, click **Load unpacked** and pick `Documents\checkpoint\.output\chrome-mv3`.
 
+## Install (Mac, one time)
+
+1. Install [Node.js LTS](https://nodejs.org). Git comes with macOS (accept the prompt to install the developer tools if it appears).
+2. In **Terminal**:
+   ```bash
+   cd ~/Documents && git clone https://github.com/sudhamshuds-ui/checkpoint
+   ```
+3. Open `Documents/checkpoint` in Finder and double-click **Update Checkpoint.command**.
+4. Load `Documents/checkpoint/.output/chrome-mv3` in `chrome://extensions` the same way as on Windows.
+
 ## Updating
 
-Double-click **Update Checkpoint.bat**, then click the reload arrow on Checkpoint in `chrome://extensions` (or restart Chrome). Your posts, folders and notes are kept.
+Double-click **Update Checkpoint.bat** (Windows) or **Update Checkpoint.command** (Mac), then click the reload arrow on Checkpoint in `chrome://extensions` (or restart Chrome). Your posts, folders and notes are kept.
 
 ## Development
 

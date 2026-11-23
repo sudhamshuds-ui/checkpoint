@@ -17,3 +17,12 @@ Chrome extension (WXT, MV3) that imports X bookmarks into a dashboard for sortin
 - Colors are tokens in `src/assets/styles.css` (`bg`, `surface`, `sunken`, `ink`, `muted`, `faint`, `line`, `accent`), with dark values under `prefers-color-scheme`. Don't hardcode colors in components.
 - Motion follows `emil-design-eng`: custom `--ease-out`, UI transitions under 300ms, `.press` for pressable elements, no animation on keyboard-driven actions (triage).
 - Verify with `pnpm typecheck`, `pnpm test`, `pnpm build`.
+
+## Workflow (read this every session)
+
+Solo project, worked on from several machines (Windows, Mac, cloud sessions). GitHub `main` is the single source of truth, and the owner's update scripts (`Update Checkpoint.bat` on Windows, `Update Checkpoint.command` on Mac) install whatever is on `main`.
+
+- **Start of a session:** `git pull origin main` before changing anything.
+- **End of a task:** verify (`pnpm typecheck`, `pnpm test`, `pnpm build`), then commit and push to `main` so every machine can pick it up. Ask before pushing if the change is large or risky.
+- If the push is rejected because `main` moved, pull with rebase, re-run the checks, and push again. Never force-push `main`.
+- After pushing, tell the owner to run the update script on their other machine(s) and reload the extension.
