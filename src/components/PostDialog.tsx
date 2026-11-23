@@ -33,13 +33,13 @@ export function PostDialog() {
     <Dialog.Root open={Boolean(openPostId)} onOpenChange={(open) => !open && openPost(null)}>
       <Dialog.Portal>
         <Dialog.Backdrop className="fixed inset-0 z-40 bg-black/50 transition-opacity duration-200 data-[ending-style]:duration-150 data-[ending-style]:opacity-0 data-[starting-style]:opacity-0" />
-        <Dialog.Popup className="fixed inset-4 z-40 m-auto flex max-h-[860px] max-w-[1240px] overflow-hidden rounded-2xl bg-surface shadow-pop outline-none transition-[transform,opacity] duration-200 ease-[var(--ease-out)] data-[ending-style]:scale-[0.98] data-[ending-style]:opacity-0 data-[ending-style]:duration-150 data-[starting-style]:scale-[0.98] data-[starting-style]:opacity-0">
+        <Dialog.Popup className="fixed inset-2 z-40 m-auto flex max-h-[860px] max-w-[1240px] flex-col overflow-y-auto rounded-2xl md:inset-4 md:flex-row md:overflow-hidden bg-surface shadow-pop outline-none transition-[transform,opacity] duration-200 ease-[var(--ease-out)] data-[ending-style]:scale-[0.98] data-[ending-style]:opacity-0 data-[ending-style]:duration-150 data-[starting-style]:scale-[0.98] data-[starting-style]:opacity-0">
           {post && (
             <>
-              <div className="flex min-w-0 flex-1 items-center justify-center bg-bg p-8">
+              <div className="flex min-h-[45vh] min-w-0 shrink-0 items-center justify-center bg-bg p-4 md:min-h-0 md:flex-1 md:shrink md:p-8">
                 <MediaStage post={post} />
               </div>
-              <div className="flex w-[380px] shrink-0 flex-col border-l border-line">
+              <div className="flex w-full shrink-0 flex-col border-line md:w-[380px] md:border-l">
                 <div className="flex items-center justify-end gap-1 p-3 pb-0">
                   <a
                     href={post.url}

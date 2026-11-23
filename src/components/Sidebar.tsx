@@ -12,6 +12,7 @@ import { createFolder, deleteFolder, renameFolder } from '@/lib/actions';
 import { plural, relativeTime } from '@/lib/format';
 import type { Folder } from '@/lib/types';
 import { connectExtension, startSync, useExtension } from '@/lib/extension';
+import { useData } from '@/lib/data';
 import { supabase } from '@/web/client';
 
 interface Props {
@@ -23,7 +24,7 @@ export function Sidebar({ folders, counts }: Props) {
   const [creating, setCreating] = useState(false);
 
   return (
-    <aside className="flex w-60 shrink-0 flex-col border-r border-line bg-bg">
+    <aside className="hidden w-60 shrink-0 flex-col border-r border-line bg-bg md:flex">
       <div className="flex h-16 items-center gap-2 px-5">
         <Logo />
         <span className="text-[15px] font-semibold tracking-[-0.01em]">Checkpoint</span>
@@ -75,6 +76,39 @@ export function Sidebar({ folders, counts }: Props) {
 
       <SyncFooter />
     </aside>
+  );
+}
+
+/** Phones: the views and folders as a scrolling row of chips above the board. */
+export function MobileNav({ folders, counts }: Props) {
+  const current = useUI((s) => s.view);
+  const setView = useUI((s) => s.setView);
+  const items: { view: View; label: string; count: number }[] = [
+    { view: { kind: 'inbox' }, label: 'Inbox', count: counts.inbox },
+    { view: { kind: 'all' }, label: 'All saves', count: counts.all },
+    ...folders.map((f) => ({ view: { kind: 'folder', folderId: f.id } as View, label: f.name, count: counts.byFolder.get(f.id) ?? 0 })),
+  ];
+  return (
+    <nav aria-label="Views" className="flex items-center gap-2 border-b border-line px-4 py-3 md:hidden">
+      <Logo />
+      <div className="-my-1 flex min-w-0 flex-1 gap-1.5 overflow-x-auto py-1 [scrollbar-width:none]">
+        {items.map((item) => {
+          const active = isActive(current, item.view);
+          return (
+            <button
+              key={item.label + (item.view.kind === 'folder' ? item.view.folderId : '')}
+              type="button"
+              onClick={() => setView(item.view)}
+              aria-current={active ? 'page' : undefined}
+              className={clsx('press flex h-8 shrink-0 items-center gap-1.5 rounded-full px-3 text-[13px]', active ? 'bg-ink text-bg' : 'bg-sunken text-muted')}
+            >
+              {item.label}
+              {item.count > 0 && <span className={clsx('tabular text-xs', active ? 'opacity-70' : 'text-faint')}>{item.count}</span>}
+            </button>
+          );
+        })}
+      </div>
+    </nav>
   );
 }
 
@@ -269,6 +303,10 @@ function SyncFooter() {
   const running = sync?.status === 'running';
 
   async function onSync() {
+    if (useData.getState().demo) {
+      toast('This preview uses sample posts', { description: 'In the real app, Sync imports your X bookmarks through the Chrome extension.' });
+      return;
+    }
     if (!status?.installed) {
       toast('Import runs from the Chrome extension', {
         description: 'Open Checkpoint in Chrome on a computer with the Checkpoint extension installed.',
@@ -311,10 +349,14 @@ function SyncFooter() {
 }
 
 function AccountRow() {
+  const demo = useData((s) => s.demo);
   const [email, setEmail] = useState<string>();
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => setEmail(data.user?.email ?? undefined));
-  }, []);
+    if (!demo) supabase.auth.getUser().then(({ data }) => setEmail(data.user?.email ?? undefined));
+  }, [demo]);
+  if (demo) {
+    return <p className="mt-3 border-t border-line px-1 pt-3 text-center text-xs text-faint">Preview with sample posts</p>;
+  }
   return (
     <div className="mt-3 flex items-center justify-between gap-2 border-t border-line px-1 pt-3 text-xs text-faint">
       <span className="truncate">{email}</span>

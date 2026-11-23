@@ -6,6 +6,7 @@ import { aspect, visualFor } from './visual';
 
 const GAP = 20;
 const MIN_COLUMN = 232;
+const MIN_COLUMN_SMALL = 150;
 
 /** Rough rendered height, used only to decide which column a card goes in. */
 function estimateHeight(post: Post, width: number) {
@@ -25,8 +26,10 @@ function estimateHeight(post: Post, width: number) {
 export function Masonry({ posts, folders, showFolders }: { posts: Post[]; folders: Folder[]; showFolders: boolean }) {
   const [ref, width] = useElementWidth<HTMLDivElement>();
   const folderMap = useMemo(() => new Map(folders.map((f) => [f.id, f])), [folders]);
-  const count = Math.max(1, Math.floor((width + GAP) / (MIN_COLUMN + GAP)));
-  const columnWidth = (width - GAP * (count - 1)) / count;
+  const min = width < 640 ? MIN_COLUMN_SMALL : MIN_COLUMN;
+  const gap = width < 640 ? 12 : GAP;
+  const count = Math.max(1, Math.floor((width + gap) / (min + gap)));
+  const columnWidth = (width - gap * (count - 1)) / count;
 
   // Shortest-column placement keeps reading order roughly left to right, top to bottom.
   const columns = useMemo(() => {
@@ -35,16 +38,16 @@ export function Masonry({ posts, folders, showFolders }: { posts: Post[]; folder
     for (const post of posts) {
       const target = heights.indexOf(Math.min(...heights));
       cols[target].push(post);
-      heights[target] += estimateHeight(post, columnWidth) + GAP;
+      heights[target] += estimateHeight(post, columnWidth) + gap;
     }
     return cols;
-  }, [posts, count, columnWidth]);
+  }, [posts, count, columnWidth, gap]);
 
   return (
-    <div ref={ref} className="flex items-start" style={{ gap: GAP }}>
+    <div ref={ref} className="flex items-start" style={{ gap }}>
       {width > 0 &&
         columns.map((column, i) => (
-          <div key={i} className="flex min-w-0 flex-1 flex-col" style={{ gap: GAP }}>
+          <div key={i} className="flex min-w-0 flex-1 flex-col" style={{ gap }}>
             {column.map((post) => (
               <PostCard key={post.id} post={post} folders={folderMap} showFolders={showFolders} />
             ))}

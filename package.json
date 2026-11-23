@@ -14,7 +14,8 @@
     "zip": "wxt zip",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "postinstall": "wxt prepare"
+    "postinstall": "wxt prepare",
+    "build:demo": "vite build --config vite.demo.config.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.9.0",

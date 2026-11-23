@@ -119,7 +119,7 @@ function TriageSession({ posts, onClose }: { posts: Post[]; onClose: () => void 
       <header className="flex h-14 shrink-0 items-center gap-4 border-b border-line px-5">
         <span className="text-sm font-medium">Sort inbox</span>
         <div className="flex flex-1 items-center gap-3">
-          <div className="h-1 w-40 overflow-hidden rounded-full bg-sunken">
+          <div className="h-1 w-24 overflow-hidden rounded-full bg-sunken sm:w-40">
             <div
               className="h-full rounded-full bg-accent transition-[width] duration-200 ease-[var(--ease-out)]"
               style={{ width: `${queue.length ? (Math.min(index, queue.length) / queue.length) * 100 : 100}%` }}
@@ -145,11 +145,11 @@ function TriageSession({ posts, onClose }: { posts: Post[]; onClose: () => void 
           </button>
         </div>
       ) : (
-        <div className="flex min-h-0 flex-1">
-          <div className="flex min-w-0 flex-1 items-center justify-center p-10">
+        <div className="flex min-h-0 flex-1 flex-col overflow-y-auto md:flex-row md:overflow-hidden">
+          <div className="flex min-h-[40vh] min-w-0 shrink-0 items-center justify-center p-4 md:min-h-0 md:flex-1 md:shrink md:p-10">
             <MediaStage post={post} />
           </div>
-          <aside className="flex w-[400px] shrink-0 flex-col border-l border-line bg-surface">
+          <aside className="flex w-full shrink-0 flex-col border-line bg-surface md:w-[400px] md:border-l">
             <div className="min-h-0 flex-1 overflow-y-auto p-6">
               <PostText post={post} />
               <div ref={noteRef} className="mt-6">
@@ -192,7 +192,7 @@ function TriageSession({ posts, onClose }: { posts: Post[]; onClose: () => void 
                 </li>
               </ul>
             </div>
-            <footer className="flex items-center gap-4 border-t border-line px-6 py-3 text-xs whitespace-nowrap text-faint">
+            <footer className="hidden items-center gap-4 border-t md:flex border-line px-6 py-3 text-xs whitespace-nowrap text-faint">
               <span>
                 <Kbd>1–9</Kbd> file
               </span>

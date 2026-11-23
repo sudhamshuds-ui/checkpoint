@@ -6,3 +6,4 @@ stats.html
 .DS_Store
 dist
 .env*.local
+dist-demo

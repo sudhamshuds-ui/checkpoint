@@ -12,11 +12,13 @@ interface DataState {
   folders: Folder[];
   sync?: SyncState;
   error?: string;
+  /** Sample data with no backend, for the preview page. */
+  demo?: boolean;
 }
 
 export const useData = create<DataState>(() => ({ folders: [] }));
 
-let client: Supabase;
+let client: Supabase | undefined;
 let channel: RealtimeChannel | undefined;
 
 const setPosts = (fn: (posts: Post[]) => Post[]) => useData.setState((s) => ({ posts: fn(s.posts ?? []) }));
@@ -82,7 +84,8 @@ export async function startData(supabase: Supabase) {
 }
 
 /** Saving failed: say so and reload, so the screen never shows changes that weren't saved. */
-async function check<T extends { error: unknown }>(request: PromiseLike<T>) {
+async function check<T extends { error: unknown }>(request: PromiseLike<T> | undefined) {
+  if (!request) return; // demo mode: nothing to save to
   const result = await request;
   if (result.error) {
     console.error('[checkpoint]', result.error);
@@ -105,17 +108,17 @@ export async function updatePost(id: string, patch: Partial<Pick<Post, 'folderId
   const row: Partial<PostRow> & { updated_at: string } = { updated_at: new Date().toISOString() };
   if (patch.folderIds) row.folder_ids = patch.folderIds;
   if (patch.note !== undefined) row.note = patch.note;
-  await check(client.from('posts').update(row).eq('id', id));
+  await check(client?.from('posts').update(row).eq('id', id));
 }
 
 export async function deletePost(id: string) {
   setPosts((posts) => posts.filter((p) => p.id !== id));
-  await check(client.from('posts').delete().eq('id', id));
+  await check(client?.from('posts').delete().eq('id', id));
 }
 
 export async function restorePost(post: Post) {
   upsertLocal(post);
-  await check(client.from('posts').upsert(postToRow(post)));
+  await check(client?.from('posts').upsert(postToRow(post)));
 }
 
 /* ---- Folders ---- */
@@ -129,17 +132,17 @@ export async function insertFolder(name: string) {
     createdAt: Date.now(),
   };
   setFolders((list) => [...list, folder]);
-  await check(client.from('folders').insert({ id: folder.id, name: folder.name, position: folder.order }));
+  await check(client?.from('folders').insert({ id: folder.id, name: folder.name, position: folder.order }));
   return folder.id;
 }
 
 export async function updateFolderName(id: string, name: string) {
   setFolders((folders) => folders.map((f) => (f.id === id ? { ...f, name } : f)));
-  await check(client.from('folders').update({ name }).eq('id', id));
+  await check(client?.from('folders').update({ name }).eq('id', id));
 }
 
 export async function removeFolder(id: string) {
   setFolders((folders) => folders.filter((f) => f.id !== id));
   setPosts((posts) => posts.map((p) => (p.folderIds.includes(id) ? { ...p, folderIds: p.folderIds.filter((f) => f !== id) } : p)));
-  await check(client.rpc('delete_folder', { folder: id }));
+  await check(client?.rpc('delete_folder', { folder: id }));
 }

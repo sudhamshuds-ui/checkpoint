@@ -8,7 +8,7 @@ import { useData } from '@/lib/data';
 import { moveToFolder, sendToInbox } from '@/lib/actions';
 import { plural } from '@/lib/format';
 import type { Post } from '@/lib/types';
-import { Sidebar } from './Sidebar';
+import { MobileNav, Sidebar } from './Sidebar';
 import { startSync, useExtension } from '@/lib/extension';
 import { toast } from 'sonner';
 import { Masonry } from './Masonry';
@@ -65,6 +65,7 @@ export function App() {
       <div className="flex h-screen overflow-hidden">
         <Sidebar folders={folders} counts={counts} />
         <main className="min-w-0 flex-1 overflow-y-auto [scrollbar-gutter:stable]">
+          <MobileNav folders={folders} counts={counts} />
           {loadError ? (
             <p className="py-24 text-center text-sm text-muted">Couldn't load your saves: {loadError}</p>
           ) : (
@@ -122,13 +123,13 @@ function MainView({ posts, folders, inboxCount }: { posts: Post[]; folders: Retu
 
   return (
     <>
-      <header className="sticky top-0 z-10 flex items-end justify-between gap-6 bg-bg/85 px-8 pt-8 pb-5 backdrop-blur-lg">
+      <header className="sticky top-0 z-10 flex flex-wrap items-end justify-between gap-x-6 gap-y-3 bg-bg/85 px-4 pt-5 pb-4 backdrop-blur-lg md:px-8 md:pt-8 md:pb-5">
         <div className="min-w-0">
           <h1 className="truncate text-2xl font-semibold tracking-[-0.02em]">{title}</h1>
           <p className="tabular mt-0.5 text-sm text-muted">{subtitle}</p>
         </div>
-        <div className="flex shrink-0 items-center gap-2">
-          <label className="relative flex items-center">
+        <div className="flex w-full items-center gap-2 sm:w-auto">
+          <label className="relative flex min-w-0 flex-1 items-center sm:flex-none">
             <Search size={15} className="pointer-events-none absolute left-2.5 text-faint" />
             <input
               ref={searchRef}
@@ -137,7 +138,7 @@ function MainView({ posts, folders, inboxCount }: { posts: Post[]; folders: Retu
               onChange={(e) => setQuery(e.target.value)}
               onKeyDown={(e) => e.key === 'Escape' && (setQuery(''), e.currentTarget.blur())}
               placeholder="Search captions, notes, people"
-              className="h-9 w-72 rounded-lg bg-surface pr-8 pl-8 text-sm shadow-card outline-none placeholder:text-faint focus:ring-2 focus:ring-accent/40"
+              className="h-9 w-full rounded-lg sm:w-72 bg-surface pr-8 pl-8 text-sm shadow-card outline-none placeholder:text-faint focus:ring-2 focus:ring-accent/40"
             />
             {!query && (
               <kbd className="pointer-events-none absolute right-2 rounded border border-line px-1 font-mono text-[11px] text-faint">/</kbd>
@@ -147,7 +148,7 @@ function MainView({ posts, folders, inboxCount }: { posts: Post[]; folders: Retu
             <button
               type="button"
               onClick={() => setTriageOpen(true)}
-              className="press flex h-9 items-center gap-1.5 rounded-lg bg-accent px-3.5 text-sm font-medium text-white hover:brightness-105"
+              className="press flex h-9 shrink-0 items-center gap-1.5 rounded-lg bg-accent px-3.5 text-sm font-medium text-white hover:brightness-105"
             >
               Sort inbox <ArrowRight size={15} />
             </button>
@@ -155,7 +156,7 @@ function MainView({ posts, folders, inboxCount }: { posts: Post[]; folders: Retu
         </div>
       </header>
 
-      <section className="px-8 pt-1 pb-20">
+      <section className="px-4 pt-1 pb-20 md:px-8">
         {visible.length > 0 ? (
           <Masonry posts={visible} folders={folders} showFolders={view.kind === 'all'} />
         ) : (
