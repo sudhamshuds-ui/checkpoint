@@ -39,7 +39,7 @@ export function Login() {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             placeholder="Email"
-            className="h-10 rounded-lg bg-surface px-3 text-sm shadow-card outline-none placeholder:text-faint focus:ring-2 focus:ring-accent/40"
+            className="h-10 rounded-lg bg-surface px-3 text-sm shadow-card outline-none placeholder:text-faint focus:ring-1 focus:ring-accent"
           />
           <input
             type="password"
@@ -48,7 +48,7 @@ export function Login() {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             placeholder="Password"
-            className="h-10 rounded-lg bg-surface px-3 text-sm shadow-card outline-none placeholder:text-faint focus:ring-2 focus:ring-accent/40"
+            className="h-10 rounded-lg bg-surface px-3 text-sm shadow-card outline-none placeholder:text-faint focus:ring-1 focus:ring-accent"
           />
         </div>
         {error && <p className="mt-3 text-[13px] text-[#c2381a] dark:text-[#ff8a6a]">{error}</p>}

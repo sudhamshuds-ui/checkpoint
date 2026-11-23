@@ -164,7 +164,7 @@ export function NoteField({ post, autoFocus, placeholder }: { post: Post; autoFo
           e.currentTarget.blur();
         }
       }}
-      className="field-sizing-content min-h-20 w-full resize-none rounded-xl bg-sunken px-3 py-2.5 text-[13.5px] leading-[1.5] outline-none placeholder:text-faint focus:ring-2 focus:ring-accent/40"
+      className="field-sizing-content min-h-20 w-full resize-none rounded-xl bg-sunken px-3 py-2.5 text-[13.5px] leading-[1.5] outline-none placeholder:text-faint focus:ring-1 focus:ring-accent"
     />
   );
 }

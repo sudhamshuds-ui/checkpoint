@@ -189,7 +189,7 @@ function MainView({ posts, folders }: { posts: Post[]; folders: Folder[] }) {
               onChange={(e) => setQuery(e.target.value)}
               onKeyDown={(e) => e.key === 'Escape' && (setQuery(''), e.currentTarget.blur())}
               placeholder="Search tags, notes, people"
-              className="h-9 w-full rounded-lg border border-line bg-surface pr-8 pl-8 text-sm outline-none placeholder:text-faint focus:ring-2 focus:ring-accent/50"
+              className="h-9 w-full rounded-lg border border-line bg-surface pr-8 pl-8 text-sm outline-none placeholder:text-faint focus:ring-1 focus:ring-accent"
             />
             {!query && <kbd className="pointer-events-none absolute right-2 rounded border border-line px-1 font-mono text-[11px] text-faint">/</kbd>}
           </label>

@@ -19,6 +19,7 @@
   --color-accent-soft: var(--accent-soft);
   --color-accent-ink: var(--accent-ink);
   --color-danger: var(--danger);
+  --color-danger-strong: var(--danger-strong);
 
   --shadow-pop: var(--pop-shadow);
   --shadow-card: var(--card-shadow);
@@ -41,6 +42,8 @@
   --accent-soft: #261a3d;
   --accent-ink: #c9b0f8;
   --danger: #ff7a66;
+  /* Solid red behind white icons (delete on hover). */
+  --danger-strong: #d93a2b;
   --card-shadow: 0 0 0 1px rgba(255, 255, 255, 0.06);
   --pop-shadow: 0 0 0 1px rgba(255, 255, 255, 0.08), 0 16px 40px -8px rgba(0, 0, 0, 0.7);
 

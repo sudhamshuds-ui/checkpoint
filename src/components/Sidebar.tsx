@@ -131,6 +131,7 @@ function NavRow({
   highlight,
   trailing,
   sortable,
+  onDoubleClick,
 }: {
   view: View;
   dropId?: string;
@@ -141,6 +142,7 @@ function NavRow({
   trailing?: ReactNode;
   /** Folder rows are sortable: they bring their own node ref, drag handlers and transform. */
   sortable?: ReturnType<typeof useSortable>;
+  onDoubleClick?: () => void;
 }) {
   const current = useUI((s) => s.view);
   const setView = useUI((s) => s.setView);
@@ -156,13 +158,15 @@ function NavRow({
       className={clsx(
         'group relative flex h-8 items-center rounded-lg transition-colors duration-100',
         active ? 'bg-sunken text-ink' : 'text-muted hover:bg-sunken/60 hover:text-ink',
-        isOver && 'bg-accent-soft! text-accent-ink! ring-1 ring-accent/40',
+        isOver && 'bg-accent-soft! text-accent-ink! ring-1 ring-accent',
         sortable?.isDragging && 'relative z-10 bg-sunken! text-ink! shadow-pop',
       )}
     >
       <button
         type="button"
         onClick={() => setView(view)}
+        onDoubleClick={onDoubleClick}
+        title={onDoubleClick ? 'Double-click to rename' : undefined}
         className="flex h-full min-w-0 flex-1 items-center gap-2.5 rounded-lg px-2 text-left text-sm outline-none focus-visible:ring-2 focus-visible:ring-accent"
         aria-current={active ? 'page' : undefined}
       >
@@ -211,6 +215,7 @@ function FolderRow({ folder, count }: { folder: Folder; count: number }) {
         label={folder.name}
         count={count}
         sortable={sortable}
+        onDoubleClick={() => setRenaming(true)}
         trailing={
           <Menu.Root>
             <Menu.Trigger
@@ -304,7 +309,7 @@ function NameInput({
         onChange={(e) => setValue(e.target.value)}
         onBlur={() => (value.trim() && value !== initial ? onSubmit(value) : onCancel())}
         onKeyDown={(e) => e.key === 'Escape' && onCancel()}
-        className="mt-px h-8 w-full rounded-lg border border-accent/70 bg-sunken px-[7px] text-sm text-ink outline-none placeholder:text-faint"
+        className="mt-px h-8 w-full rounded-lg border border-accent bg-sunken px-[7px] text-sm text-ink outline-none placeholder:text-faint"
       />
     </form>
   );
@@ -417,7 +422,7 @@ function ConnectDialog({ open, onOpenChange, onConnected }: { open: boolean; onO
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="Password"
-              className="h-9 w-full rounded-lg bg-sunken px-3 text-sm outline-none placeholder:text-faint focus:ring-2 focus:ring-accent/40"
+              className="h-9 w-full rounded-lg bg-sunken px-3 text-sm outline-none placeholder:text-faint focus:ring-1 focus:ring-accent"
             />
             {error && <p className="mt-2 text-[13px] text-[#c2381a] dark:text-[#ff8a6a]">{error}</p>}
             <div className="mt-5 flex justify-end gap-2">

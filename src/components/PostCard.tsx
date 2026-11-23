@@ -60,7 +60,7 @@ export const PostCard = memo(function PostCard({ post, folders, action }: Props)
         </div>
       )}
       <div className={clsx('absolute right-2 bottom-2 transition-opacity duration-150', active ? 'opacity-100' : 'pointer-events-none opacity-0 group-focus-within:pointer-events-auto group-focus-within:opacity-100')}>
-        <Pill icon label="Remove from Checkpoint" onClick={() => removePost(post)}>
+        <Pill icon danger label="Remove from Checkpoint" onClick={() => removePost(post)}>
           <Trash2 size={14} strokeWidth={2} />
         </Pill>
       </div>
@@ -133,10 +133,10 @@ export const PostCard = memo(function PostCard({ post, folders, action }: Props)
   );
 });
 
-type PillProps = Omit<React.ComponentPropsWithRef<'button'>, 'children'> & { children: ReactNode; label: string; icon?: boolean; selected?: boolean };
+type PillProps = Omit<React.ComponentPropsWithRef<'button'>, 'children'> & { children: ReactNode; label: string; icon?: boolean; selected?: boolean; danger?: boolean };
 
 /* Popover triggers pass their own handlers and ref through these props, so compose rather than replace them. */
-function Pill({ children, label, icon, selected, onClick, onPointerDown, className, ...rest }: PillProps) {
+function Pill({ children, label, icon, selected, danger, onClick, onPointerDown, className, ...rest }: PillProps) {
   return (
     <button
       type="button"
@@ -154,7 +154,8 @@ function Pill({ children, label, icon, selected, onClick, onPointerDown, classNa
       className={clsx(
         'press flex h-7 items-center justify-center rounded-full text-xs font-medium',
         icon ? 'w-7' : 'max-w-44 px-3',
-        selected ? 'bg-ink text-bg' : 'bg-black/60 text-white backdrop-blur-md hover:bg-black/75',
+        selected ? 'bg-ink text-bg' : danger ? 'bg-black/60 text-white backdrop-blur-md hover:bg-danger-strong' : 'bg-black/60 text-white backdrop-blur-md hover:bg-black/75',
+        'transition-[background-color,transform] duration-150',
         className,
       )}
     >
