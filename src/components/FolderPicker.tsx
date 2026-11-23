@@ -18,20 +18,10 @@ interface PopoverProps {
   onPicked?: (added: boolean) => void;
 }
 
-/* The menu morphs out of its trigger. It is laid over the button and starts as a clear shape clipped to
-   the button's own pill (the anchor size Base UI exposes), so the real button shows through. It then opens
-   to its full rectangle while its background and border fill in. Closing runs the same path in reverse and
-   melts back into the button. No opacity fade, and the button itself never changes, so nothing flashes.
-   The settled clip reaches 32px past the edges (radius 12 + 32) so the drop shadow isn't cut off. */
-// Class names are written out in full so Tailwind can find them.
-const MORPH =
-  'transition-[clip-path,background-color,border-color] duration-200 ease-[var(--ease-out)] ' +
-  // Closing: the shape collapses first and the fill clears only at the very end, so it reads as one object shrinking back.
-  'data-[ending-style]:[transition-duration:150ms,60ms,60ms] data-[ending-style]:[transition-delay:0ms,90ms,90ms] ' +
-  '[clip-path:inset(-32px_round_44px)] ' +
-  'data-[starting-style]:bg-transparent data-[ending-style]:bg-transparent data-[starting-style]:border-transparent data-[ending-style]:border-transparent ' +
-  'data-[side=bottom]:data-[starting-style]:[clip-path:inset(0_0_calc(100%-var(--anchor-height))_calc(100%-var(--anchor-width))_round_999px)] data-[side=bottom]:data-[ending-style]:[clip-path:inset(0_0_calc(100%-var(--anchor-height))_calc(100%-var(--anchor-width))_round_999px)] ' +
-  'data-[side=top]:data-[starting-style]:[clip-path:inset(calc(100%-var(--anchor-height))_0_0_calc(100%-var(--anchor-width))_round_999px)] data-[side=top]:data-[ending-style]:[clip-path:inset(calc(100%-var(--anchor-height))_0_0_calc(100%-var(--anchor-width))_round_999px)]';
+/* The menu sits just beside its trigger and simply fades, so the Sort button stays visible and
+   clicking it again closes the menu. */
+const FADE =
+  'transition-opacity duration-150 ease-[var(--ease-out)] data-[starting-style]:opacity-0 data-[ending-style]:opacity-0 data-[ending-style]:duration-100';
 
 /** Popover with a searchable folder list. Picking a folder adds or removes the post. */
 export function FolderPopover({ postId, trigger, open: controlled, onOpenChange, side = 'bottom', align = 'end', beforePick, onPicked }: PopoverProps) {
@@ -45,11 +35,9 @@ export function FolderPopover({ postId, trigger, open: controlled, onOpenChange,
     <Popover.Root open={open} onOpenChange={setOpen}>
       <Popover.Trigger render={trigger} />
       <Popover.Portal>
-        {/* Negative offset lays the menu over its trigger so the morph starts exactly on the button. */}
-        <Popover.Positioner side={side} sideOffset={({ anchor }) => -anchor.height} align={align} className="z-50">
-          <Popover.Popup className={`morph-popup w-64 rounded-xl border border-line bg-surface shadow-pop outline-none ${MORPH}`} onClick={(e) => e.stopPropagation()}>
-            <div className="transition-opacity duration-150 in-data-[ending-style]:opacity-0 in-data-[ending-style]:duration-75 in-data-[starting-style]:opacity-0 [transition-delay:60ms] in-data-[ending-style]:[transition-delay:0ms]">
-              <FolderPicker
+        <Popover.Positioner side={side} sideOffset={8} align={align} className="z-50">
+          <Popover.Popup className={`w-64 rounded-xl border border-line bg-surface shadow-pop outline-none ${FADE}`} onClick={(e) => e.stopPropagation()}>
+            <FolderPicker
                 postId={postId}
                 commit={async (toggle, added) => {
                   setOpen(false);
@@ -58,7 +46,6 @@ export function FolderPopover({ postId, trigger, open: controlled, onOpenChange,
                   onPicked?.(added);
                 }}
               />
-            </div>
           </Popover.Popup>
         </Popover.Positioner>
       </Popover.Portal>
