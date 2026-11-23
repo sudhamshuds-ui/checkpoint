@@ -79,7 +79,7 @@ export const PostCard = memo(function PostCard({ post, folders, action, entering
               if (added && action === 'sort' && post.folderIds.length === 0) await leave();
             }}
             trigger={
-              <Pill selected={menuOpen} label={action === 'sort' ? 'Sort into a folder' : `In ${names.join(', ')}. Change folder`}>
+              <Pill label={action === 'sort' ? 'Sort into a folder' : `In ${names.join(', ')}. Change folder`}>
                 {actionLabel}
               </Pill>
             }
@@ -172,10 +172,10 @@ export const PostCard = memo(function PostCard({ post, folders, action, entering
   );
 });
 
-type PillProps = Omit<React.ComponentPropsWithRef<'button'>, 'children'> & { children: ReactNode; label: string; icon?: boolean; selected?: boolean; danger?: boolean };
+type PillProps = Omit<React.ComponentPropsWithRef<'button'>, 'children'> & { children: ReactNode; label: string; icon?: boolean; danger?: boolean };
 
 /* Popover triggers pass their own handlers and ref through these props, so compose rather than replace them. */
-function Pill({ children, label, icon, selected, danger, onClick, onPointerDown, className, ...rest }: PillProps) {
+function Pill({ children, label, icon, danger, onClick, onPointerDown, className, ...rest }: PillProps) {
   return (
     <button
       type="button"
@@ -193,7 +193,7 @@ function Pill({ children, label, icon, selected, danger, onClick, onPointerDown,
       className={clsx(
         'press flex h-7 items-center justify-center rounded-full text-xs font-medium',
         icon ? 'w-7' : 'max-w-44 px-3',
-        selected ? 'bg-ink text-bg' : danger ? 'bg-black/60 text-white backdrop-blur-md hover:bg-danger-strong' : 'bg-black/60 text-white backdrop-blur-md hover:bg-black/75',
+        danger ? 'bg-black/60 text-white backdrop-blur-md hover:bg-danger-strong' : 'bg-black/60 text-white backdrop-blur-md hover:bg-black/75',
         className,
       )}
     >

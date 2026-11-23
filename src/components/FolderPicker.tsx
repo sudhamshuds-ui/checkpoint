@@ -18,16 +18,20 @@ interface PopoverProps {
   onPicked?: (added: boolean) => void;
 }
 
-/* The menu morphs out of its trigger: it is laid over the button, starts clipped to the button's own
-   pill shape (the anchor size Base UI exposes), and opens to its full rounded rectangle. The clip edge
-   follows the side it opened on, so it works whether it drops down from a tile or rises from the modal footer. */
+/* The menu morphs out of its trigger. It is laid over the button and starts as a clear shape clipped to
+   the button's own pill (the anchor size Base UI exposes), so the real button shows through. It then opens
+   to its full rectangle while its background and border fill in. Closing runs the same path in reverse and
+   melts back into the button. No opacity fade, and the button itself never changes, so nothing flashes.
+   The settled clip reaches 32px past the edges (radius 12 + 32) so the drop shadow isn't cut off. */
+// Class names are written out in full so Tailwind can find them.
 const MORPH =
-  'transition-[clip-path,opacity] duration-200 ease-[var(--ease-out)] [clip-path:inset(0_round_12px)] ' +
-  'data-[ending-style]:duration-150 data-[ending-style]:opacity-0 data-[starting-style]:opacity-0 ' +
-  'data-[side=bottom]:data-[starting-style]:[clip-path:inset(0_0_calc(100%-var(--anchor-height))_calc(100%-var(--anchor-width))_round_999px)] ' +
-  'data-[side=bottom]:data-[ending-style]:[clip-path:inset(0_0_calc(100%-var(--anchor-height))_calc(100%-var(--anchor-width))_round_999px)] ' +
-  'data-[side=top]:data-[starting-style]:[clip-path:inset(calc(100%-var(--anchor-height))_0_0_calc(100%-var(--anchor-width))_round_999px)] ' +
-  'data-[side=top]:data-[ending-style]:[clip-path:inset(calc(100%-var(--anchor-height))_0_0_calc(100%-var(--anchor-width))_round_999px)]';
+  'transition-[clip-path,background-color,border-color] duration-200 ease-[var(--ease-out)] ' +
+  // Closing: the shape collapses first and the fill clears only at the very end, so it reads as one object shrinking back.
+  'data-[ending-style]:[transition-duration:150ms,60ms,60ms] data-[ending-style]:[transition-delay:0ms,90ms,90ms] ' +
+  '[clip-path:inset(-32px_round_44px)] ' +
+  'data-[starting-style]:bg-transparent data-[ending-style]:bg-transparent data-[starting-style]:border-transparent data-[ending-style]:border-transparent ' +
+  'data-[side=bottom]:data-[starting-style]:[clip-path:inset(0_0_calc(100%-var(--anchor-height))_calc(100%-var(--anchor-width))_round_999px)] data-[side=bottom]:data-[ending-style]:[clip-path:inset(0_0_calc(100%-var(--anchor-height))_calc(100%-var(--anchor-width))_round_999px)] ' +
+  'data-[side=top]:data-[starting-style]:[clip-path:inset(calc(100%-var(--anchor-height))_0_0_calc(100%-var(--anchor-width))_round_999px)] data-[side=top]:data-[ending-style]:[clip-path:inset(calc(100%-var(--anchor-height))_0_0_calc(100%-var(--anchor-width))_round_999px)]';
 
 /** Popover with a searchable folder list. Picking a folder adds or removes the post. */
 export function FolderPopover({ postId, trigger, open: controlled, onOpenChange, side = 'bottom', align = 'end', beforePick, onPicked }: PopoverProps) {
