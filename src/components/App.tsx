@@ -15,7 +15,7 @@ import {
 import { arrayMove } from '@dnd-kit/sortable';
 import Lenis from 'lenis';
 import { Toaster, toast } from 'sonner';
-import { ArrowRight, Search } from 'lucide-react';
+import { ArrowRight, Search, X } from 'lucide-react';
 import { filterView, useCounts, useFolders, usePosts, useTags } from '@/lib/hooks';
 import { useUI } from '@/lib/store';
 import { reorderFolders, useData } from '@/lib/data';
@@ -211,8 +211,22 @@ function MainView({ posts, folders }: { posts: Post[]; folders: Folder[] }) {
               onChange={(e) => setQuery(e.target.value)}
               onKeyDown={(e) => e.key === 'Escape' && (setQuery(''), e.currentTarget.blur())}
               placeholder="Search tags, notes, people"
-              className="h-9 w-full rounded-lg border border-line bg-surface pr-8 pl-8 text-sm outline-none placeholder:text-faint focus:ring-1 focus:ring-accent"
+              className="h-9 w-full rounded-lg border border-line bg-surface pr-8 pl-8 text-sm outline-none placeholder:text-faint focus:ring-1 focus:ring-accent [&::-webkit-search-cancel-button]:appearance-none"
             />
+            {query && (
+              // Our own clear button: the browser's one ignores the field's padding and colours.
+              <button
+                type="button"
+                aria-label="Clear search"
+                onClick={() => {
+                  setQuery('');
+                  searchRef.current?.focus();
+                }}
+                className="press absolute right-1.5 flex size-6 items-center justify-center rounded-md text-faint hover:bg-sunken hover:text-ink"
+              >
+                <X size={14} strokeWidth={2} />
+              </button>
+            )}
             {!query && <kbd className="pointer-events-none absolute right-2 rounded border border-line px-1 font-mono text-[11px] text-faint">/</kbd>}
           </label>
         )}
