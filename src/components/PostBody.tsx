@@ -8,7 +8,7 @@ import { imageUrl, shortDate } from '@/lib/format';
 import type { Media, Post } from '@/lib/types';
 import { Avatar, MediaView } from './Media';
 
-/** The post's media in the modal: square corners, Copy image, and arrows beside it for carousels. */
+/** The post's media in the modal: square corners, Copy image, and arrows on the image for carousels. */
 export function MediaStage({ post, startIndex = 0 }: { post: Post; startIndex?: number }) {
   const media: Media[] = post.media.length ? post.media : post.quote?.media ?? [];
   const [index, setIndex] = useState(startIndex);
@@ -67,11 +67,12 @@ export function MediaStage({ post, startIndex = 0 }: { post: Post; startIndex?: 
         >
           <Copy size={14} strokeWidth={2} />
         </button>
+        {/* Image arrows sit on the image, like on the tiles; the big arrows outside the window change post. */}
+        {index > 0 && <StageButton side="left" onClick={() => setIndex((i) => i - 1)} />}
+        {index < media.length - 1 && <StageButton side="right" onClick={() => setIndex((i) => i + 1)} />}
       </div>
       {media.length > 1 && (
         <>
-          {index > 0 && <StageButton side="left" onClick={() => setIndex((i) => i - 1)} />}
-          {index < media.length - 1 && <StageButton side="right" onClick={() => setIndex((i) => i + 1)} />}
           <div className="absolute -bottom-10 left-1/2 flex -translate-x-1/2 gap-1.5">
             {media.map((m, i) => (
               <button
@@ -98,8 +99,8 @@ function StageButton({ side, onClick }: { side: 'left' | 'right'; onClick: () =>
       onClick={onClick}
       aria-label={side === 'left' ? 'Previous image' : 'Next image'}
       className={clsx(
-        'press absolute top-1/2 flex size-8 -translate-y-1/2 items-center justify-center rounded-full border border-line bg-surface text-ink hover:bg-sunken',
-        side === 'left' ? '-left-12' : '-right-12',
+        'press absolute top-1/2 flex size-8 -translate-y-1/2 items-center justify-center rounded-full bg-black/60 text-white backdrop-blur-md hover:bg-black/75',
+        side === 'left' ? 'left-2' : 'right-2',
       )}
     >
       <Icon size={16} />
