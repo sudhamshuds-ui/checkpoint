@@ -3,7 +3,7 @@ import { Dialog } from '@base-ui/react/dialog';
 import clsx from 'clsx';
 import { Check, X } from 'lucide-react';
 import { assignQuietly, createFolder } from '@/lib/actions';
-import { isInbox } from '@/lib/db';
+import { isInbox } from '@/lib/posts';
 import { useFolders } from '@/lib/hooks';
 import { useUI } from '@/lib/store';
 import type { Post } from '@/lib/types';

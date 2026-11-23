@@ -1,4 +1,6 @@
 @import 'tailwindcss';
+/* The website build starts in src/web, so point Tailwind at all shared components too. */
+@source '..';
 @import '@fontsource-variable/geist';
 @import '@fontsource-variable/geist-mono';
 

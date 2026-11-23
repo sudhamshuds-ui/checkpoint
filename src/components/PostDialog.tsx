@@ -1,10 +1,8 @@
 import { useEffect } from 'react';
 import { Dialog } from '@base-ui/react/dialog';
-import { useLiveQuery } from 'dexie-react-hooks';
 import { ArrowUpRight, Inbox, Plus, Trash2, X } from 'lucide-react';
 import clsx from 'clsx';
-import { db } from '@/lib/db';
-import { useFolders } from '@/lib/hooks';
+import { useFolders, usePost } from '@/lib/hooks';
 import { useUI } from '@/lib/store';
 import { removePost, sendToInbox, toggleFolder } from '@/lib/actions';
 import { FolderPopover } from './FolderPicker';
@@ -13,7 +11,7 @@ import { MediaStage, NoteField, PostText } from './PostBody';
 export function PostDialog() {
   const openPostId = useUI((s) => s.openPostId);
   const openPost = useUI((s) => s.openPost);
-  const post = useLiveQuery(() => (openPostId ? db.posts.get(openPostId) : undefined), [openPostId]);
+  const post = usePost(openPostId);
   const folders = useFolders();
 
   // Arrow keys step through the posts on screen.

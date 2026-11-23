@@ -1,10 +1,22 @@
 # Checkpoint
 
-A personal inspiration hub. A Chrome extension that imports your X (Twitter) bookmarks into a calm, Pinterest-style dashboard where you sort posts into folders, triage an unsorted inbox, and leave notes on why you saved something.
+A personal inspiration hub for X (Twitter) bookmarks. A calm, Pinterest-style board where you sort posts into folders, triage an unsorted inbox, and leave notes on why you saved something.
 
-No X API key or paid plan needed. Everything stays in your browser.
+- **Website** (Vercel): the board. Open it on any computer and sign in.
+- **Chrome extension**: imports your X bookmarks and catches new ones as you save them.
+- **Supabase**: stores everything, so every device shows the same board. Only your account can read it.
 
-## Install (Windows, one time)
+No X API key or paid plan needed.
+
+## Setup (one time)
+
+1. **Supabase:** create a project, open **SQL Editor**, paste all of `supabase/schema.sql` and run it.
+2. **Your login:** in Supabase, **Authentication → Users → Add user → Create new user**, enter your email and a password, and tick **Auto Confirm User**. Then in **Authentication → Sign In / Providers**, turn off **Allow new users to sign up** so nobody else can make an account.
+3. **Config:** put the Project URL and publishable (anon) key in `src/config.ts`.
+4. **Vercel:** import the GitHub repo. The settings come from `vercel.json`. Put the site address in `src/app-url.ts` so the extension knows where the website lives.
+5. **Extension (Windows):** see below, then open the website in that Chrome and sign in. The extension signs itself in too.
+
+### Extension on Windows
 
 1. Install [Git](https://git-scm.com/download/win) and [Node.js LTS](https://nodejs.org) with their default options.
 2. Open **Command Prompt** and run:
@@ -15,30 +27,13 @@ No X API key or paid plan needed. Everything stays in your browser.
 3. Open `Documents\checkpoint` and double-click **Update Checkpoint.bat**.
 4. In Chrome, open `chrome://extensions`, turn on **Developer mode**, click **Load unpacked** and pick `Documents\checkpoint\.output\chrome-mv3`.
 
-## Install (Mac, one time)
+To update the extension later: double-click **Update Checkpoint.bat**, then click the reload arrow on Checkpoint in `chrome://extensions`. The website updates itself on every push to `main`.
 
-1. Install [Node.js LTS](https://nodejs.org). Git comes with macOS (accept the prompt to install the developer tools if it appears).
-2. In **Terminal**:
-   ```bash
-   cd ~/Documents && git clone https://github.com/sudhamshuds-ui/checkpoint
-   ```
-3. Open `Documents/checkpoint` in Finder and double-click **Update Checkpoint.command**.
-4. Load `Documents/checkpoint/.output/chrome-mv3` in `chrome://extensions` the same way as on Windows.
+## How importing works
 
-## Updating
-
-Double-click **Update Checkpoint.bat** (Windows) or **Update Checkpoint.command** (Mac), then click the reload arrow on Checkpoint in `chrome://extensions` (or restart Chrome). Your posts, folders and notes are kept.
-
-## Development
-
-`pnpm dev` launches a separate Chrome with the extension and hot reload.
-
-## How it works
-
-- **Import:** Sync opens `x.com/i/bookmarks` and scrolls it. X's own page loads your bookmarks; Checkpoint reads those responses as they arrive. The first sync goes to the end of your list. Later syncs stop once they reach bookmarks you already have. The tab closes itself when done.
-- **Live capture:** while you browse X on desktop, bookmarking a post saves it to Checkpoint right away. Removing a bookmark on X removes it from your Inbox, but never from a folder.
-- **Phone bookmarks** sync to your X account, so they arrive on your next sync.
-- **Storage:** IndexedDB inside the extension. Nothing is sent anywhere.
+- **Sync** opens `x.com/i/bookmarks` and scrolls it. X's own page loads your bookmarks; the extension reads those responses as they arrive. The first sync goes to the end of your list; later syncs stop once they reach posts you already have.
+- **Live capture:** bookmarking a post on X in that Chrome saves it right away. Removing a bookmark on X removes it from your Inbox, but never from a folder.
+- **Phone and other computers:** bookmarks you make there are in your X account, so they arrive on the next sync.
 
 ## Using it
 
@@ -53,7 +48,15 @@ Double-click **Update Checkpoint.bat** (Windows) or **Update Checkpoint.command*
 
 ## Stack
 
-WXT (Manifest V3), React 19, Tailwind CSS 4, Dexie, base-ui, cmdk, dnd kit, Sonner, zustand.
+Vite + React 19 website, WXT (Manifest V3) extension, Supabase (Postgres, auth, realtime), Tailwind CSS 4, base-ui, cmdk, dnd kit, Sonner, zustand.
+
+```bash
+pnpm dev
+```
+
+```bash
+pnpm build:web
+```
 
 ```bash
 pnpm test

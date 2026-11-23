@@ -1,15 +1,18 @@
-import { useState, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import clsx from 'clsx';
 import { useDroppable } from '@dnd-kit/core';
 import { Menu } from '@base-ui/react/menu';
 import { AlertDialog } from '@base-ui/react/alert-dialog';
+import { Dialog } from '@base-ui/react/dialog';
+import { toast } from 'sonner';
 import { Inbox, LayoutGrid, MoreHorizontal, Plus, RefreshCw } from 'lucide-react';
 import { useUI, type View } from '@/lib/store';
 import { useSyncState } from '@/lib/hooks';
 import { createFolder, deleteFolder, renameFolder } from '@/lib/actions';
 import { plural, relativeTime } from '@/lib/format';
 import type { Folder } from '@/lib/types';
-import type { RuntimeMessage } from '@/lib/messages';
+import { connectExtension, startSync, useExtension } from '@/lib/extension';
+import { supabase } from '@/web/client';
 
 interface Props {
   folders: Folder[];
@@ -259,23 +262,33 @@ function NameInput({
   );
 }
 
-export function startSync() {
-  return browser.runtime.sendMessage({ type: 'sync:start' } satisfies RuntimeMessage);
-}
-
 function SyncFooter() {
   const sync = useSyncState();
+  const { status, refresh } = useExtension();
+  const [connecting, setConnecting] = useState(false);
   const running = sync?.status === 'running';
+
+  async function onSync() {
+    if (!status?.installed) {
+      toast('Import runs from the Chrome extension', {
+        description: 'Open Checkpoint in Chrome on a computer with the Checkpoint extension installed.',
+      });
+      return;
+    }
+    if (!status.signedIn) return setConnecting(true);
+    const result = await startSync();
+    if (!result?.ok) toast.error("Couldn't start the import", { description: result?.error });
+  }
 
   return (
     <div className="border-t border-line p-3">
       <button
         type="button"
-        onClick={startSync}
+        onClick={onSync}
         className="press flex h-9 w-full items-center justify-center gap-2 rounded-lg bg-surface text-sm font-medium shadow-card hover:bg-sunken"
       >
         <RefreshCw size={14} strokeWidth={2} className={clsx(running && 'animate-spin [animation-duration:700ms]')} />
-        {running ? 'Importing…' : 'Sync bookmarks'}
+        {running ? 'Importing…' : status?.installed && !status.signedIn ? 'Connect extension' : 'Sync bookmarks'}
       </button>
       <p className="tabular mt-2 px-1 text-center text-xs text-faint">
         {running
@@ -284,7 +297,83 @@ function SyncFooter() {
             ? `Synced ${relativeTime(sync.lastSyncAt)}${sync.lastAdded ? ` · ${sync.lastAdded} new` : ''}`
             : 'Not synced yet'}
       </p>
+      <AccountRow />
+      <ConnectDialog
+        open={connecting}
+        onOpenChange={setConnecting}
+        onConnected={() => {
+          refresh();
+          toast('Extension connected', { description: 'Bookmarks you save on X now land here.' });
+        }}
+      />
     </div>
+  );
+}
+
+function AccountRow() {
+  const [email, setEmail] = useState<string>();
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => setEmail(data.user?.email ?? undefined));
+  }, []);
+  return (
+    <div className="mt-3 flex items-center justify-between gap-2 border-t border-line px-1 pt-3 text-xs text-faint">
+      <span className="truncate">{email}</span>
+      <button type="button" onClick={() => supabase.auth.signOut()} className="shrink-0 hover:text-ink">
+        Sign out
+      </button>
+    </div>
+  );
+}
+
+/** The extension keeps its own login. Asking for the password once lets it sign itself in. */
+function ConnectDialog({ open, onOpenChange, onConnected }: { open: boolean; onOpenChange: (open: boolean) => void; onConnected: () => void }) {
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState<string>();
+  const [busy, setBusy] = useState(false);
+
+  async function submit(e: React.FormEvent) {
+    e.preventDefault();
+    setBusy(true);
+    setError(undefined);
+    const { data } = await supabase.auth.getUser();
+    const result = await connectExtension(data.user?.email ?? '', password);
+    setBusy(false);
+    if (result?.ok) {
+      setPassword('');
+      onOpenChange(false);
+      onConnected();
+    } else setError(result?.error ?? 'The extension did not answer. Reload it in chrome://extensions and try again.');
+  }
+
+  return (
+    <Dialog.Root open={open} onOpenChange={onOpenChange}>
+      <Dialog.Portal>
+        <Dialog.Backdrop className="fixed inset-0 z-50 bg-black/40 transition-opacity duration-200 data-[ending-style]:opacity-0 data-[starting-style]:opacity-0" />
+        <Dialog.Popup className="fixed top-1/2 left-1/2 z-50 w-[380px] -translate-x-1/2 -translate-y-1/2 rounded-2xl bg-surface p-5 shadow-pop outline-none transition-[transform,opacity] duration-200 ease-[var(--ease-out)] data-[ending-style]:scale-[0.97] data-[ending-style]:opacity-0 data-[starting-style]:scale-[0.97] data-[starting-style]:opacity-0">
+          <Dialog.Title className="text-[15px] font-semibold">Connect the extension</Dialog.Title>
+          <Dialog.Description className="mt-1.5 text-sm leading-relaxed text-muted">
+            Enter your Checkpoint password once so the extension in this Chrome can save bookmarks to your account.
+          </Dialog.Description>
+          <form onSubmit={submit} className="mt-4">
+            <input
+              autoFocus
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="Password"
+              className="h-9 w-full rounded-lg bg-sunken px-3 text-sm outline-none placeholder:text-faint focus:ring-2 focus:ring-accent/40"
+            />
+            {error && <p className="mt-2 text-[13px] text-[#c2381a] dark:text-[#ff8a6a]">{error}</p>}
+            <div className="mt-5 flex justify-end gap-2">
+              <Dialog.Close className="press h-8 rounded-lg px-3 text-sm text-muted hover:bg-sunken hover:text-ink">Cancel</Dialog.Close>
+              <button type="submit" disabled={!password || busy} className="press h-8 rounded-lg bg-ink px-3 text-sm font-medium text-bg disabled:opacity-50">
+                {busy ? 'Connecting…' : 'Connect'}
+              </button>
+            </div>
+          </form>
+        </Dialog.Popup>
+      </Dialog.Portal>
+    </Dialog.Root>
   );
 }
 

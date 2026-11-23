@@ -1,10 +1,8 @@
 import { useState, type ReactElement } from 'react';
 import { Command } from 'cmdk';
 import { Popover } from '@base-ui/react/popover';
-import { useLiveQuery } from 'dexie-react-hooks';
 import { Check, Plus } from 'lucide-react';
-import { db } from '@/lib/db';
-import { useFolders } from '@/lib/hooks';
+import { useFolders, usePost } from '@/lib/hooks';
 import { createFolder, toggleFolder } from '@/lib/actions';
 
 /** Popover with a searchable folder list. Picking a folder adds or removes the post. */
@@ -28,7 +26,7 @@ export function FolderPopover({ postId, trigger }: { postId: string; trigger: Re
 }
 
 export function FolderPicker({ postId }: { postId: string }) {
-  const post = useLiveQuery(() => db.posts.get(postId), [postId]);
+  const post = usePost(postId);
   const folders = useFolders();
   const [search, setSearch] = useState('');
   const name = search.trim();

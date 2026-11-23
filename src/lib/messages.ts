@@ -26,3 +26,16 @@ export interface SyncState {
   lastSyncAt?: number;
   lastAdded?: number;
 }
+
+/** Website -> extension, over chrome.runtime.sendMessage(extensionId, ...). */
+export type ExternalMessage =
+  | { type: 'status' }
+  | { type: 'connect'; email: string; password: string }
+  | { type: 'disconnect' }
+  | { type: 'sync:start' };
+
+export interface ExtensionStatus {
+  installed: boolean;
+  signedIn: boolean;
+  email?: string;
+}

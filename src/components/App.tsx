@@ -4,10 +4,13 @@ import { Toaster } from 'sonner';
 import { ArrowRight, Search } from 'lucide-react';
 import { filterView, useCounts, useFolders, usePosts } from '@/lib/hooks';
 import { useUI } from '@/lib/store';
+import { useData } from '@/lib/data';
 import { moveToFolder, sendToInbox } from '@/lib/actions';
 import { plural } from '@/lib/format';
 import type { Post } from '@/lib/types';
-import { Sidebar, startSync } from './Sidebar';
+import { Sidebar } from './Sidebar';
+import { startSync, useExtension } from '@/lib/extension';
+import { toast } from 'sonner';
 import { Masonry } from './Masonry';
 import { DragPreview } from './PostCard';
 import { PostDialog } from './PostDialog';
@@ -28,6 +31,7 @@ export function App() {
   const folders = useFolders();
   const counts = useCounts(posts);
   const view = useUI((s) => s.view);
+  const loadError = useData((s) => s.error);
   const [dragging, setDragging] = useState<Post | null>(null);
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }));
 
@@ -61,7 +65,11 @@ export function App() {
       <div className="flex h-screen overflow-hidden">
         <Sidebar folders={folders} counts={counts} />
         <main className="min-w-0 flex-1 overflow-y-auto [scrollbar-gutter:stable]">
-          {posts && <MainView posts={posts} folders={folders} inboxCount={counts.inbox} />}
+          {loadError ? (
+            <p className="py-24 text-center text-sm text-muted">Couldn't load your saves: {loadError}</p>
+          ) : (
+            posts && <MainView posts={posts} folders={folders} inboxCount={counts.inbox} />
+          )}
         </main>
       </div>
       <DragOverlay dropAnimation={null} modifiers={[besideCursor]} className="pointer-events-none">{dragging && <DragPreview post={dragging} />}</DragOverlay>
@@ -169,25 +177,46 @@ function Empty({ children }: { children: React.ReactNode }) {
 }
 
 function Welcome() {
+  const { status } = useExtension();
+  const ready = status?.installed && status.signedIn;
+
   return (
     <div className="flex min-h-full items-center justify-center p-8">
       <div className="max-w-md">
         <h1 className="text-[28px] leading-tight font-semibold tracking-[-0.02em]">Bring in your bookmarks</h1>
-        <p className="mt-3 text-[15px] leading-relaxed text-muted">
-          Checkpoint opens your X bookmarks in a new tab and scrolls through them to import everything. Keep that tab open
-          until it says it's finished. It closes itself and brings you back here.
-        </p>
-        <p className="mt-3 text-[15px] leading-relaxed text-muted">
-          After that, anything you bookmark on X while this extension is installed shows up here on its own. Bookmarks
-          made on your phone arrive the next time you sync.
-        </p>
-        <button
-          type="button"
-          onClick={startSync}
-          className="press mt-7 flex h-10 items-center gap-2 rounded-lg bg-accent px-4 text-sm font-medium text-white hover:brightness-105"
-        >
-          Import from X <ArrowRight size={16} />
-        </button>
+        {status === undefined ? null : ready ? (
+          <>
+            <p className="mt-3 text-[15px] leading-relaxed text-muted">
+              Checkpoint opens your X bookmarks in a new tab and scrolls through them to import everything. Keep that
+              tab open until it says it's finished. It closes itself and brings you back here.
+            </p>
+            <p className="mt-3 text-[15px] leading-relaxed text-muted">
+              After that, anything you bookmark on X in this Chrome shows up here on its own, on every device you sign
+              in on.
+            </p>
+            <button
+              type="button"
+              onClick={async () => {
+                const result = await startSync();
+                if (!result?.ok) toast.error("Couldn't start the import", { description: result?.error });
+              }}
+              className="press mt-7 flex h-10 items-center gap-2 rounded-lg bg-accent px-4 text-sm font-medium text-white hover:brightness-105"
+            >
+              Import from X <ArrowRight size={16} />
+            </button>
+          </>
+        ) : status.installed ? (
+          <p className="mt-3 text-[15px] leading-relaxed text-muted">
+            The Checkpoint extension is installed in this Chrome but isn't signed in yet. Click{' '}
+            <span className="font-medium text-ink">Connect extension</span> at the bottom left, then come back here to
+            import.
+          </p>
+        ) : (
+          <p className="mt-3 text-[15px] leading-relaxed text-muted">
+            Bookmarks are imported by the Checkpoint extension for Chrome. Open this page in Chrome on a computer that
+            has it installed. Everything you import shows up here on any device you sign in on.
+          </p>
+        )}
       </div>
     </div>
   );

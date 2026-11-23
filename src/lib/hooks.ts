@@ -1,16 +1,23 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useLiveQuery } from 'dexie-react-hooks';
-import { db, isInbox } from './db';
-import type { SyncState } from './messages';
+import { useData } from './data';
+import { isInbox } from './posts';
 import type { Folder, Post } from './types';
 import type { View } from './store';
 
 export function usePosts(): Post[] | undefined {
-  return useLiveQuery(() => db.posts.orderBy('sortKey').reverse().toArray(), []);
+  return useData((s) => s.posts);
+}
+
+export function usePost(id: string | null): Post | undefined {
+  return useData((s) => (id ? s.posts?.find((p) => p.id === id) : undefined));
 }
 
 export function useFolders(): Folder[] {
-  return useLiveQuery(() => db.folders.orderBy('order').toArray(), []) ?? [];
+  return useData((s) => s.folders);
+}
+
+export function useSyncState() {
+  return useData((s) => s.sync);
 }
 
 export function useCounts(posts: Post[] | undefined) {
@@ -39,19 +46,6 @@ export function filterView(posts: Post[], view: View, query: string) {
     if (view.kind === 'folder' && !p.folderIds.includes(view.folderId)) return false;
     return matches(p, query);
   });
-}
-
-export function useSyncState(): SyncState | undefined {
-  const [state, setState] = useState<SyncState>();
-  useEffect(() => {
-    browser.storage.local.get('sync').then(({ sync }) => setState(sync as SyncState | undefined));
-    const listener = (changes: Record<string, Browser.storage.StorageChange>, area: string) => {
-      if (area === 'local' && changes.sync) setState(changes.sync.newValue as SyncState);
-    };
-    browser.storage.onChanged.addListener(listener);
-    return () => browser.storage.onChanged.removeListener(listener);
-  }, []);
-  return state;
 }
 
 export function useElementWidth<T extends HTMLElement>() {

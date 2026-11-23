@@ -1,28 +1,38 @@
 # Checkpoint
 
-Chrome extension (WXT, MV3) that imports X bookmarks into a dashboard for sorting into folders.
+Personal inspiration hub for X bookmarks. Two parts share one codebase:
+
+- **Website** (`src/web`, built with Vite, deployed on Vercel from `main`): the dashboard. Sign in, browse, sort into folders, notes, triage. Works on any computer, no install.
+- **Chrome extension** (`src/entrypoints`, built with WXT, MV3): captures bookmarks from x.com and saves them to Supabase. Its toolbar button opens the website.
+- **Supabase** holds all data (`supabase/schema.sql`). Row level security limits every row to its owner.
 
 ## Layout
 
-- `src/entrypoints/x-page.content.ts` runs in X's page world (`world: 'MAIN'`). It wraps `fetch` and XHR, reads GraphQL responses (`Bookmarks`, any timeline), and watches `CreateBookmark` / `DeleteBookmark` requests. It only reads; it never makes requests to X.
+- `src/components/` the dashboard UI, used by the website.
+- `src/lib/data.ts` the website's data store: loads from Supabase, applies changes optimistically, listens to realtime so other devices and the extension update the screen live.
+- `src/lib/posts.ts` row mapping and the Supabase calls shared by website and extension.
+- `src/lib/extension.ts` website -> extension messaging (`chrome.runtime.sendMessage(EXTENSION_ID, ...)`, allowed by `externally_connectable`).
+- `src/entrypoints/x-page.content.ts` runs in X's page world. Wraps `fetch`/XHR and reads GraphQL responses (`Bookmarks`, timelines) and `CreateBookmark` / `DeleteBookmark` requests. Read-only; never calls X itself.
 - `src/entrypoints/x.content.ts` bridges page messages to the background and runs the auto-scroll during a sync.
-- `src/entrypoints/background.ts` writes to IndexedDB, keeps the toolbar badge (inbox count), and opens/closes the sync tab.
-- `src/entrypoints/dashboard/` is the app (unlisted page, opened from the toolbar button).
-- `src/lib/parse-x.ts` turns X's untyped GraphQL JSON into `ParsedPost`. X changes this shape often; keep parsing defensive and update `src/lib/__tests__/parse-x.test.ts` with real samples when fixing it.
-- `src/lib/db.ts` is the Dexie schema. A post with no `folderIds` is in the Inbox.
+- `src/entrypoints/background.ts` keeps its own Supabase login (signed in from the website), saves bookmarks, queues them when offline, sets the inbox badge, runs the sync tab, and moves data from the old local-only version once.
+- `src/lib/parse-x.ts` turns X's untyped GraphQL JSON into posts. X changes this often; keep it defensive and update `src/lib/__tests__/parse-x.test.ts` with real samples when fixing it.
+- `src/config.ts` Supabase URL, publishable key, website URL, extension IDs. Public values; `VITE_*` env vars override them for local testing.
+
+A post with no `folderIds` is in the Inbox.
 
 ## Conventions
 
 - Library picks follow the `pick-ui-library` skill: base-ui, cmdk, Sonner, dnd kit, zustand, clsx.
 - Colors are tokens in `src/assets/styles.css` (`bg`, `surface`, `sunken`, `ink`, `muted`, `faint`, `line`, `accent`), with dark values under `prefers-color-scheme`. Don't hardcode colors in components.
 - Motion follows `emil-design-eng`: custom `--ease-out`, UI transitions under 300ms, `.press` for pressable elements, no animation on keyboard-driven actions (triage).
-- Verify with `pnpm typecheck`, `pnpm test`, `pnpm build`.
+- Schema changes go in `supabase/schema.sql` and must stay safe to re-run. Tell the owner to paste it into the Supabase SQL editor.
+- Verify with `pnpm typecheck`, `pnpm test`, `pnpm build` (extension) and `pnpm build:web` (website).
 
 ## Workflow (read this every session)
 
-Solo project, worked on from several machines (Windows, Mac, cloud sessions). GitHub `main` is the single source of truth, and the owner's update scripts (`Update Checkpoint.bat` on Windows, `Update Checkpoint.command` on Mac) install whatever is on `main`.
+Solo project, worked on from several machines (Windows, a work Mac that can't install anything, cloud sessions). GitHub `main` is the single source of truth.
 
 - **Start of a session:** `git pull origin main` before changing anything.
-- **End of a task:** verify (`pnpm typecheck`, `pnpm test`, `pnpm build`), then commit and push to `main` so every machine can pick it up. Ask before pushing if the change is large or risky.
+- **End of a task:** verify, then commit and push to `main`. Vercel deploys the website from `main` automatically, so website changes need nothing else. Ask before pushing if the change is large or risky.
 - If the push is rejected because `main` moved, pull with rebase, re-run the checks, and push again. Never force-push `main`.
-- After pushing, tell the owner to run the update script on their other machine(s) and reload the extension.
+- If the change touches the extension (`src/entrypoints`, `src/lib/parse-x.ts`, `src/lib/posts.ts`, `src/config.ts`, `wxt.config.ts`), tell the owner to run `Update Checkpoint.bat` on Windows and reload the extension. Website-only changes need no action from them.
