@@ -1,0 +1,88 @@
+import { useState, type ReactElement } from 'react';
+import { Command } from 'cmdk';
+import { Popover } from '@base-ui/react/popover';
+import { useLiveQuery } from 'dexie-react-hooks';
+import { Check, Plus } from 'lucide-react';
+import { db } from '@/lib/db';
+import { useFolders } from '@/lib/hooks';
+import { createFolder, toggleFolder } from '@/lib/actions';
+
+/** Popover with a searchable folder list. Picking a folder adds or removes the post. */
+export function FolderPopover({ postId, trigger }: { postId: string; trigger: ReactElement }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <Popover.Root open={open} onOpenChange={setOpen}>
+      <Popover.Trigger render={trigger} />
+      <Popover.Portal>
+        <Popover.Positioner sideOffset={6} align="end" className="z-50">
+          <Popover.Popup
+            className="w-64 origin-[var(--transform-origin)] rounded-xl bg-surface shadow-pop outline-none transition-[transform,opacity] duration-150 ease-[var(--ease-out)] data-[ending-style]:scale-[0.97] data-[ending-style]:opacity-0 data-[starting-style]:scale-[0.97] data-[starting-style]:opacity-0"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <FolderPicker postId={postId} />
+          </Popover.Popup>
+        </Popover.Positioner>
+      </Popover.Portal>
+    </Popover.Root>
+  );
+}
+
+export function FolderPicker({ postId }: { postId: string }) {
+  const post = useLiveQuery(() => db.posts.get(postId), [postId]);
+  const folders = useFolders();
+  const [search, setSearch] = useState('');
+  const name = search.trim();
+  const exists = folders.some((f) => f.name.toLowerCase() === name.toLowerCase());
+
+  if (!post) return null;
+
+  return (
+    <Command loop className="flex flex-col">
+      <Command.Input
+        autoFocus
+        value={search}
+        onValueChange={setSearch}
+        placeholder={folders.length ? 'Find or create a folder' : 'Name your first folder'}
+        className="h-10 border-b border-line bg-transparent px-3 text-sm outline-none placeholder:text-faint"
+      />
+      <Command.List className="max-h-72 overflow-y-auto p-1">
+        {folders.map((folder) => {
+          const checked = post.folderIds.includes(folder.id);
+          return (
+            <Command.Item
+              key={folder.id}
+              value={`${folder.name} ${folder.id}`}
+              onSelect={() => toggleFolder(post, folder.id, folder.name)}
+              className="flex h-8 items-center gap-2 rounded-lg px-2 text-sm"
+            >
+              <span className="flex size-4 items-center justify-center text-accent">
+                {checked && <Check size={14} strokeWidth={2.25} />}
+              </span>
+              <span className="truncate">{folder.name}</span>
+            </Command.Item>
+          );
+        })}
+        {name && !exists && (
+          <Command.Item
+            forceMount
+            value={`create ${name}`}
+            onSelect={async () => {
+              const id = await createFolder(name);
+              await toggleFolder(post, id, name);
+              setSearch('');
+            }}
+            className="flex h-8 items-center gap-2 rounded-lg px-2 text-sm"
+          >
+            <Plus size={14} className="text-muted" />
+            <span className="truncate">
+              Create <span className="font-medium">“{name}”</span>
+            </span>
+          </Command.Item>
+        )}
+        {!name && folders.length === 0 && (
+          <p className="px-2 py-3 text-[13px] text-muted">Type a name, like Motion or Branding.</p>
+        )}
+      </Command.List>
+    </Command>
+  );
+}

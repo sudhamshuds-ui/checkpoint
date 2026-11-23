@@ -1,0 +1,102 @@
+@import 'tailwindcss';
+@import '@fontsource-variable/geist';
+@import '@fontsource-variable/geist-mono';
+
+@theme inline {
+  --font-sans: 'Geist Variable', ui-sans-serif, system-ui, sans-serif;
+  --font-mono: 'Geist Mono Variable', ui-monospace, monospace;
+
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-sunken: var(--sunken);
+  --color-ink: var(--ink);
+  --color-muted: var(--muted);
+  --color-faint: var(--faint);
+  --color-line: var(--line);
+  --color-accent: var(--accent);
+  --color-accent-soft: var(--accent-soft);
+  --color-accent-ink: var(--accent-ink);
+
+  --shadow-pop: var(--pop-shadow);
+  --shadow-card: var(--card-shadow);
+
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+}
+
+:root {
+  color-scheme: light;
+  --bg: #f6f5f2;
+  --surface: #ffffff;
+  --sunken: #eeede9;
+  --ink: #1a1a18;
+  --muted: #6b6963;
+  --faint: #a19f98;
+  --line: #e4e2dc;
+  --accent: #e0582f;
+  --accent-soft: #fbe9e2;
+  --accent-ink: #b33f1b;
+  --card-shadow: 0 0 0 1px rgba(26, 26, 24, 0.06), 0 1px 2px -1px rgba(26, 26, 24, 0.08);
+  --pop-shadow: 0 0 0 1px rgba(0, 0, 0, 0.06), 0 1px 1px -0.5px rgba(0, 0, 0, 0.06), 0 3px 3px -1.5px rgba(0, 0, 0, 0.06),
+    0 6px 6px -3px rgba(0, 0, 0, 0.06), 0 12px 12px -6px rgba(0, 0, 0, 0.06), 0 24px 24px -12px rgba(0, 0, 0, 0.06);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+    --bg: #121211;
+    --surface: #1b1b1a;
+    --sunken: #232321;
+    --ink: #edece8;
+    --muted: #9b9990;
+    --faint: #6a6862;
+    --line: #2b2b29;
+    --accent: #f0693f;
+    --accent-soft: #3a2119;
+    --accent-ink: #ff9a78;
+    --card-shadow: 0 0 0 1px rgba(255, 255, 255, 0.06);
+    --pop-shadow: 0 0 0 1px rgba(255, 255, 255, 0.08), 0 12px 32px -8px rgba(0, 0, 0, 0.6);
+  }
+}
+
+html,
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+::selection {
+  background: var(--accent-soft);
+}
+
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Pressable elements confirm the press. */
+.press {
+  transition: transform 140ms var(--ease-out), background-color 140ms ease, color 140ms ease;
+}
+.press:active {
+  transform: scale(0.97);
+}
+
+/* cmdk */
+[cmdk-item] {
+  cursor: default;
+}
+[cmdk-item][data-selected='true'] {
+  background: var(--sunken);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-duration: 1ms !important;
+    animation-duration: 1ms !important;
+  }
+}
