@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, X } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import { useTags } from '@/lib/hooks';
 import { createTagOn, toggleTag } from '@/lib/actions';
 import { TAG_COLORS, type Post, type Tag, type TagColor } from '@/lib/types';
@@ -24,6 +24,7 @@ export function PostTags({ post }: { post: Post }) {
             type="button"
             onClick={() => toggleTag(post, tag.id)}
             title={`Add ${tag.name}`}
+            aria-pressed={false}
             className="press inline-flex h-6 items-center rounded-full bg-sunken px-2.5 text-xs font-medium text-faint outline-none hover:text-ink focus-visible:ring-2 focus-visible:ring-accent"
           >
             {tag.name}
@@ -35,22 +36,19 @@ export function PostTags({ post }: { post: Post }) {
   );
 }
 
-/** A tag on a post. The name is just a label; × takes it off this post. */
+/** A tag on a post. Clicking it takes it off again. */
 export function TagChip({ tag, onRemove }: { tag: Tag; onRemove?: () => void }) {
   return (
-    <span className="inline-flex h-6 items-center rounded-full pr-1 pl-2.5 text-xs font-medium text-white" style={{ background: tagColor(tag.color) }}>
-      <span>{tag.name}</span>
-      {onRemove && (
-        <button
-          type="button"
-          onClick={onRemove}
-          aria-label={`Remove tag ${tag.name}`}
-          className="ml-0.5 flex size-4 items-center justify-center rounded-full opacity-60 outline-none hover:bg-white/15 hover:opacity-100 focus-visible:opacity-100"
-        >
-          <X size={11} strokeWidth={2.5} />
-        </button>
-      )}
-    </span>
+    <button
+      type="button"
+      onClick={onRemove}
+      title={`Remove ${tag.name}`}
+      aria-pressed
+      className="press inline-flex h-6 items-center rounded-full px-2.5 text-xs font-medium text-white outline-none focus-visible:ring-2 focus-visible:ring-accent"
+      style={{ background: tagColor(tag.color) }}
+    >
+      {tag.name}
+    </button>
   );
 }
 
