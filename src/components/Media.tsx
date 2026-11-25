@@ -3,6 +3,7 @@ import clsx from 'clsx';
 import { ImageOff, Play } from 'lucide-react';
 import { imageUrl } from '@/lib/format';
 import type { Media } from '@/lib/types';
+import { VideoPlayer } from './VideoPlayer';
 
 interface Props {
   media: Media;
@@ -29,14 +30,6 @@ export function MediaView({ media, mode, playing = false, className, fallbackHre
     else video.pause();
   }, [playing, mode]);
 
-  // An opened video starts playing straight away, muted. The controls are there to unmute.
-  useEffect(() => {
-    const video = videoRef.current;
-    if (!video || mode !== 'detail' || media.type !== 'video') return;
-    video.muted = true;
-    video.play().catch(() => undefined);
-  }, [mode, media.type, isVideo]);
-
   if (imageFailed) {
     return (
       <div className={clsx('flex h-full w-full flex-col items-center justify-center gap-2 text-faint', className)}>
@@ -44,6 +37,10 @@ export function MediaView({ media, mode, playing = false, className, fallbackHre
         <span className="text-xs">Media unavailable</span>
       </div>
     );
+  }
+
+  if (isVideo && mode === 'detail' && media.type === 'video') {
+    return <VideoPlayer key={media.videoUrl} media={media} poster={imageUrl(media.url, 'large')} className={className} onError={() => setVideoFailed(true)} />;
   }
 
   if (isVideo) {
@@ -57,7 +54,6 @@ export function MediaView({ media, mode, playing = false, className, fallbackHre
         muted
         loop={mode === 'card' || media.type === 'gif'}
         autoPlay={mode === 'detail' && media.type === 'gif'}
-        controls={mode === 'detail' && media.type === 'video'}
         playsInline
         preload={mode === 'card' ? 'none' : 'auto'}
         // If X won't serve the video here, fall back to its still frame instead of an error.
