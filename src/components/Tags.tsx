@@ -1,12 +1,39 @@
 import { useState } from 'react';
-import { Command } from 'cmdk';
-import { Popover } from '@base-ui/react/popover';
-import { Check, Plus, X } from 'lucide-react';
-import { useTags, usePost } from '@/lib/hooks';
+import { Plus, X } from 'lucide-react';
+import { useTags } from '@/lib/hooks';
 import { createTagOn, toggleTag } from '@/lib/actions';
 import { TAG_COLORS, type Post, type Tag, type TagColor } from '@/lib/types';
 
 export const tagColor = (c: TagColor) => `var(--tag-${c})`;
+
+/**
+ * Every tag you've made, in one row. Tags on this post show in colour; the rest are greyed out and
+ * a click adds them. They keep their places, so nothing jumps around as you tag. Ends with a field
+ * for a new tag.
+ */
+export function PostTags({ post, onSearch }: { post: Post; onSearch: (name: string) => void }) {
+  const tags = useTags();
+  return (
+    <div className="flex flex-wrap gap-2">
+      {tags.map((tag) =>
+        post.tagIds.includes(tag.id) ? (
+          <TagChip key={tag.id} tag={tag} onSearch={() => onSearch(tag.name)} onRemove={() => toggleTag(post, tag.id)} />
+        ) : (
+          <button
+            key={tag.id}
+            type="button"
+            onClick={() => toggleTag(post, tag.id)}
+            title={`Add ${tag.name}`}
+            className="press inline-flex h-6 items-center rounded-full bg-sunken px-2.5 text-xs font-medium text-faint outline-none hover:text-ink focus-visible:ring-2 focus-visible:ring-accent"
+          >
+            {tag.name}
+          </button>
+        ),
+      )}
+      <NewTag post={post} tags={tags} />
+    </div>
+  );
+}
 
 /** A tag on a post. Clicking the name searches for it; × takes it off this post. */
 export function TagChip({ tag, onSearch, onRemove }: { tag: Tag; onSearch?: () => void; onRemove?: () => void }) {
@@ -36,86 +63,60 @@ function randomTagColor(tags: Tag[]): TagColor {
   return pool[Math.floor(Math.random() * pool.length)];
 }
 
-export function AddTag({ post }: { post: Post }) {
-  const [open, setOpen] = useState(false);
-  const [search, setSearch] = useState('');
-  const tags = useTags();
+/** Adds the typed tag: an existing one with that name, otherwise a new one in a random colour. */
+function addByName(post: Post, tags: Tag[], typed: string) {
+  const name = typed.trim();
+  if (!name) return;
+  const existing = tags.find((t) => t.name.toLowerCase() === name.toLowerCase());
+  if (!existing) void createTagOn(post, name, randomTagColor(tags));
+  else if (!post.tagIds.includes(existing.id)) void toggleTag(post, existing.id);
+}
 
-  // Whatever was typed is saved when the menu closes (a click anywhere else counts): an existing
-  // tag with that name is added, otherwise a new tag is made in a random colour. Escape discards it.
-  function onOpenChange(next: boolean, details: Popover.Root.ChangeEventDetails) {
-    setOpen(next);
-    if (next) return;
-    const name = search.trim();
-    setSearch('');
-    if (!name || details.reason === 'escape-key') return;
-    const existing = tags.find((t) => t.name.toLowerCase() === name.toLowerCase());
-    if (existing) {
-      if (!post.tagIds.includes(existing.id)) void toggleTag(post, existing.id);
-    } else void createTagOn(post, name, randomTagColor(tags));
+/**
+ * "Add tag" turns into a text field in place. Enter adds the tag and stays ready for another;
+ * clicking anywhere else adds it and closes; Escape closes without adding.
+ */
+function NewTag({ post, tags }: { post: Post; tags: Tag[] }) {
+  const [editing, setEditing] = useState(false);
+  const [value, setValue] = useState('');
+
+  if (!editing) {
+    return (
+      <button
+        type="button"
+        onClick={() => setEditing(true)}
+        className="press inline-flex h-6 items-center gap-1 rounded-full border border-dashed border-line pr-2.5 pl-2 text-xs text-muted outline-none hover:text-ink focus-visible:ring-2 focus-visible:ring-accent"
+      >
+        <Plus size={12} strokeWidth={2.25} /> {tags.length ? 'New tag' : 'Add tag'}
+      </button>
+    );
   }
 
   return (
-    <Popover.Root open={open} onOpenChange={onOpenChange}>
-      <Popover.Trigger className="press inline-flex h-6 items-center gap-1 rounded-full border border-dashed border-line pr-2.5 pl-2 text-xs text-muted outline-none hover:text-ink focus-visible:ring-2 focus-visible:ring-accent">
-        <Plus size={12} strokeWidth={2.25} /> Add tag
-      </Popover.Trigger>
-      <Popover.Portal>
-        <Popover.Positioner side="bottom" align="start" sideOffset={8} className="z-50">
-          <Popover.Popup className="w-60 origin-[var(--transform-origin)] rounded-xl border border-line bg-surface shadow-pop outline-none transition-[scale,opacity] duration-150 ease-[var(--ease-out)] data-[ending-style]:scale-[0.96] data-[ending-style]:opacity-0 data-[ending-style]:duration-100 data-[starting-style]:scale-[0.96] data-[starting-style]:opacity-0">
-            <TagPicker postId={post.id} search={search} setSearch={setSearch} />
-          </Popover.Popup>
-        </Popover.Positioner>
-      </Popover.Portal>
-    </Popover.Root>
-  );
-}
-
-function TagPicker({ postId, search, setSearch }: { postId: string; search: string; setSearch: (s: string) => void }) {
-  const post = usePost(postId);
-  const tags = useTags();
-  const name = search.trim();
-  const exists = tags.some((t) => t.name.toLowerCase() === name.toLowerCase());
-  if (!post) return null;
-
-  return (
-    <Command loop className="flex flex-col">
-      <Command.Input
-        autoFocus
-        value={search}
-        onValueChange={setSearch}
-        placeholder={tags.length ? 'Find or create a tag' : 'Name your first tag'}
-        className="h-10 border-b border-line bg-transparent px-3 text-sm outline-none placeholder:text-faint"
-      />
-      <Command.List className="max-h-64 overflow-y-auto p-1">
-        {tags.map((tag) => {
-          const on = post.tagIds.includes(tag.id);
-          return (
-            <Command.Item key={tag.id} value={`${tag.name} ${tag.id}`} onSelect={() => toggleTag(post, tag.id)} className="flex h-8 items-center gap-2 rounded-lg px-2 text-sm">
-              <span className="size-2 shrink-0 rounded-full" style={{ background: tagColor(tag.color) }} />
-              <span className="flex-1 truncate">{tag.name}</span>
-              {on && <Check size={14} strokeWidth={2.25} className="text-accent" />}
-            </Command.Item>
-          );
-        })}
-        {name && !exists && (
-          <Command.Item
-            forceMount
-            value={`create ${name}`}
-            onSelect={async () => {
-              setSearch('');
-              await createTagOn(post, name, randomTagColor(tags));
-            }}
-            className="flex h-8 items-center gap-2 rounded-lg px-2 text-sm"
-          >
-            <Plus size={14} className="text-muted" />
-            <span className="truncate">
-              Create <span className="font-medium">“{name}”</span>
-            </span>
-          </Command.Item>
-        )}
-        {!name && tags.length === 0 && <p className="px-2 py-3 text-[13px] text-muted">Tags describe a post, like Reference or Recreate later.</p>}
-      </Command.List>
-    </Command>
+    <input
+      autoFocus
+      value={value}
+      onChange={(e) => setValue(e.target.value)}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter') {
+          addByName(post, tags, value);
+          setValue('');
+        }
+        if (e.key === 'Escape') {
+          e.stopPropagation(); // close the field, not the post
+          setValue('');
+          setEditing(false);
+        }
+      }}
+      onBlur={() => {
+        addByName(post, tags, value);
+        setValue('');
+        setEditing(false);
+      }}
+      placeholder="Tag name"
+      aria-label="New tag name"
+      size={Math.max(value.length, 8)}
+      className="h-6 rounded-full border border-accent bg-sunken px-2.5 text-xs text-ink outline-none placeholder:text-faint"
+    />
   );
 }

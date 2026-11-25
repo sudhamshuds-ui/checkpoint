@@ -1,13 +1,13 @@
 import { useEffect, useRef, useState } from 'react';
 import { Dialog } from '@base-ui/react/dialog';
 import { ChevronLeft, ChevronRight, Trash2, X } from 'lucide-react';
-import { useFolders, usePost, useTags } from '@/lib/hooks';
+import { useFolders, usePost } from '@/lib/hooks';
 import { useUI } from '@/lib/store';
-import { removePost, toggleTag } from '@/lib/actions';
+import { removePost } from '@/lib/actions';
 import { FolderPopover } from './FolderPicker';
 import { MediaStage, NoteField, PostText } from './PostBody';
 import { Pill } from './PostCard';
-import { AddTag, TagChip } from './Tags';
+import { PostTags } from './Tags';
 
 export function PostDialog() {
   const openPostId = useUI((s) => s.openPostId);
@@ -16,7 +16,6 @@ export function PostDialog() {
   const visibleIds = useUI((s) => s.visibleIds);
   const post = usePost(openPostId);
   const folders = useFolders();
-  const tags = useTags();
   const [sortOpen, setSortOpen] = useState(false);
 
   const view = useUI((s) => s.view);
@@ -43,7 +42,6 @@ export function PostDialog() {
   }, [openPostId, prevId, nextId, openPost]);
 
   const folderNames = post ? post.folderIds.map((id) => folders.find((f) => f.id === id)?.name).filter(Boolean) : [];
-  const postTags = post ? tags.filter((t) => post.tagIds.includes(t.id)) : [];
   const sortLabel = folderNames.length ? `${folderNames[0]}${folderNames.length > 1 ? ` +${folderNames.length - 1}` : ''}` : 'Sort';
 
   /** Sorting an unsorted post from X bookmarks moves straight on to the next one. */
@@ -88,12 +86,7 @@ export function PostDialog() {
                     </section>
                     <section>
                       <h3 className="mb-2 text-xs font-medium text-faint">Tags</h3>
-                      <div className="flex flex-wrap gap-2">
-                        {postTags.map((tag) => (
-                          <TagChip key={tag.id} tag={tag} onSearch={() => searchTag(tag.name)} onRemove={() => toggleTag(post, tag.id)} />
-                        ))}
-                        <AddTag post={post} />
-                      </div>
+                      <PostTags post={post} onSearch={searchTag} />
                     </section>
                   </div>
 
