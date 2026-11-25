@@ -10,14 +10,14 @@ export const tagColor = (c: TagColor) => `var(--tag-${c})`;
  * Every tag you've made, in one row: the post's tags first in colour, then the rest greyed out,
  * where a click adds one. Ends with a field for a new tag.
  */
-export function PostTags({ post, onSearch }: { post: Post; onSearch: (name: string) => void }) {
+export function PostTags({ post }: { post: Post }) {
   const tags = useTags();
   const ordered = [...tags.filter((t) => post.tagIds.includes(t.id)), ...tags.filter((t) => !post.tagIds.includes(t.id))];
   return (
     <div className="flex flex-wrap gap-2">
       {ordered.map((tag) =>
         post.tagIds.includes(tag.id) ? (
-          <TagChip key={tag.id} tag={tag} onSearch={() => onSearch(tag.name)} onRemove={() => toggleTag(post, tag.id)} />
+          <TagChip key={tag.id} tag={tag} onRemove={() => toggleTag(post, tag.id)} />
         ) : (
           <button
             key={tag.id}
@@ -35,13 +35,11 @@ export function PostTags({ post, onSearch }: { post: Post; onSearch: (name: stri
   );
 }
 
-/** A tag on a post. Clicking the name searches for it; × takes it off this post. */
-export function TagChip({ tag, onSearch, onRemove }: { tag: Tag; onSearch?: () => void; onRemove?: () => void }) {
+/** A tag on a post. The name is just a label; × takes it off this post. */
+export function TagChip({ tag, onRemove }: { tag: Tag; onRemove?: () => void }) {
   return (
     <span className="inline-flex h-6 items-center rounded-full pr-1 pl-2.5 text-xs font-medium text-white" style={{ background: tagColor(tag.color) }}>
-      <button type="button" onClick={onSearch} className="outline-none hover:underline focus-visible:underline" title={`Show everything tagged ${tag.name}`}>
-        {tag.name}
-      </button>
+      <span>{tag.name}</span>
       {onRemove && (
         <button
           type="button"

@@ -51,13 +51,6 @@ export function PostDialog() {
     openPost(following ?? null);
   }
 
-  function searchTag(name: string) {
-    openPost(null);
-    const ui = useUI.getState();
-    ui.setView({ kind: 'feed' });
-    ui.setQuery(name);
-  }
-
   return (
     <Dialog.Root open={Boolean(openPostId)} onOpenChange={(open) => !open && openPost(null)}>
       <Dialog.Portal>
@@ -86,7 +79,7 @@ export function PostDialog() {
                     </section>
                     <section>
                       <h3 className="mb-2 text-xs font-medium text-faint">Tags</h3>
-                      <PostTags post={post} onSearch={searchTag} />
+                      <PostTags post={post} />
                     </section>
                   </div>
 
