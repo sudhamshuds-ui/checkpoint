@@ -7,15 +7,15 @@ import { TAG_COLORS, type Post, type Tag, type TagColor } from '@/lib/types';
 export const tagColor = (c: TagColor) => `var(--tag-${c})`;
 
 /**
- * Every tag you've made, in one row. Tags on this post show in colour; the rest are greyed out and
- * a click adds them. They keep their places, so nothing jumps around as you tag. Ends with a field
- * for a new tag.
+ * Every tag you've made, in one row: the post's tags first in colour, then the rest greyed out,
+ * where a click adds one. Ends with a field for a new tag.
  */
 export function PostTags({ post, onSearch }: { post: Post; onSearch: (name: string) => void }) {
   const tags = useTags();
+  const ordered = [...tags.filter((t) => post.tagIds.includes(t.id)), ...tags.filter((t) => !post.tagIds.includes(t.id))];
   return (
     <div className="flex flex-wrap gap-2">
-      {tags.map((tag) =>
+      {ordered.map((tag) =>
         post.tagIds.includes(tag.id) ? (
           <TagChip key={tag.id} tag={tag} onSearch={() => onSearch(tag.name)} onRemove={() => toggleTag(post, tag.id)} />
         ) : (
