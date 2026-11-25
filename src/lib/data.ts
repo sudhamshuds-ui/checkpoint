@@ -126,13 +126,20 @@ export async function updatePost(id: string, patch: Partial<Pick<Post, 'folderId
   await check(client?.from('posts').update(row).eq('id', id));
 }
 
+/** Deletes a post and remembers it, so a later sync doesn't bring it back while it's still bookmarked on X. */
 export async function deletePost(id: string) {
   setPosts((posts) => posts.filter((p) => p.id !== id));
-  await check(client?.from('posts').delete().eq('id', id));
+  if (!client) return;
+  const dismissed = await client.rpc('dismiss_post', { post_id: id });
+  // Before the schema update is run there's no dismiss_post yet: fall back to a plain delete.
+  if (dismissed.error?.code === 'PGRST202') await check(client.from('posts').delete().eq('id', id));
+  else await check(Promise.resolve(dismissed));
 }
 
+/** Undo for deletePost: forgets the delete and puts the post back. */
 export async function restorePost(post: Post) {
   upsertLocal(post);
+  await client?.from('dismissed_posts').delete().eq('id', post.id); // missing table before the schema update: nothing to forget
   await check(client?.from('posts').upsert(postToRow(post)));
 }
 

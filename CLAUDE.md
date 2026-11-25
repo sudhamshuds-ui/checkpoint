@@ -22,6 +22,8 @@ Personal inspiration hub for X bookmarks. Two parts share one codebase:
 
 A post with no `folderIds` is in the Inbox.
 
+Deleting a post from Checkpoint (`dismiss_post`) records it in `dismissed_posts`, and `upsert_bookmarks` skips those on later syncs. A live capture (bookmarking it again on X, sortKey `L…`) clears the record and brings it back.
+
 ## Conventions
 
 - Library picks follow the `pick-ui-library` skill: base-ui, cmdk, Sonner, dnd kit, zustand, clsx.

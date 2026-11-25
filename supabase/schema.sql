@@ -48,15 +48,25 @@ create table if not exists public.profiles (
   updated_at timestamptz not null default now()
 );
 
+-- Posts you deleted from Checkpoint. Syncs skip them so they don't come back while they're still
+-- bookmarked on X. Bookmarking one again on X (a live capture) brings it back. Added after Round 2.
+create table if not exists public.dismissed_posts (
+  user_id      uuid        not null default auth.uid() references auth.users (id) on delete cascade,
+  id           text        not null,               -- X post id
+  dismissed_at timestamptz not null default now(),
+  primary key (user_id, id)
+);
+
 -- Newer Supabase projects don't grant table access automatically. Logged-in users get it here;
 -- the policies below still limit them to their own rows. Logged-out visitors get nothing.
-grant select, insert, update, delete on public.posts, public.folders, public.profiles, public.tags to authenticated;
-revoke all on public.posts, public.folders, public.profiles, public.tags from anon;
+grant select, insert, update, delete on public.posts, public.folders, public.profiles, public.tags, public.dismissed_posts to authenticated;
+revoke all on public.posts, public.folders, public.profiles, public.tags, public.dismissed_posts from anon;
 
 alter table public.posts    enable row level security;
 alter table public.folders  enable row level security;
 alter table public.profiles enable row level security;
 alter table public.tags     enable row level security;
+alter table public.dismissed_posts enable row level security;
 
 drop policy if exists "own posts" on public.posts;
 create policy "own posts" on public.posts for all to authenticated
@@ -67,12 +77,16 @@ create policy "own folders" on public.folders for all to authenticated
 drop policy if exists "own tags" on public.tags;
 create policy "own tags" on public.tags for all to authenticated
   using (user_id = (select auth.uid())) with check (user_id = (select auth.uid()));
+drop policy if exists "own dismissed posts" on public.dismissed_posts;
+create policy "own dismissed posts" on public.dismissed_posts for all to authenticated
+  using (user_id = (select auth.uid())) with check (user_id = (select auth.uid()));
 drop policy if exists "own profile" on public.profiles;
 create policy "own profile" on public.profiles for all to authenticated
   using (user_id = (select auth.uid())) with check (user_id = (select auth.uid()));
 
 -- Saves bookmarks from the extension. Refreshes post content but never touches folders or notes.
--- Returns how many posts were new.
+-- Skips posts you deleted from Checkpoint, unless you just bookmarked them again on X (a live
+-- capture, sortKey "L…"), which brings them back. Returns how many posts were new.
 create or replace function public.upsert_bookmarks(items jsonb)
 returns integer
 language sql
@@ -84,6 +98,12 @@ as $$
     from jsonb_array_elements(items) with ordinality as t(i, ord)
     order by i->>'id', ord
   ),
+  -- Bookmarked again on X: forget the delete.
+  undismissed as (
+    delete from public.dismissed_posts d
+    using incoming
+    where d.user_id = (select auth.uid()) and d.id = i->>'id' and i->>'sortKey' like 'L%'
+  ),
   upserted as (
     insert into public.posts as p (id, url, author, text, posted_at, media, link, quote, sort_key, saved_at)
     select
@@ -92,6 +112,8 @@ as $$
       coalesce(i->'media', '[]'), i->'link', i->'quote', i->>'sortKey',
       now() - make_interval(secs => ord / 1000.0)
     from incoming
+    where i->>'sortKey' like 'L%'
+       or not exists (select 1 from public.dismissed_posts d where d.user_id = (select auth.uid()) and d.id = i->>'id')
     on conflict (user_id, id) do update set
       url = excluded.url,
       author = excluded.author,
@@ -120,6 +142,17 @@ as $$
   update public.posts set unbookmarked = true, updated_at = now() where id = post_id;
 $$;
 
+-- Deletes a post from Checkpoint and remembers it, so the next sync doesn't bring it back.
+create or replace function public.dismiss_post(post_id text)
+returns void
+language sql
+security invoker
+set search_path = ''
+as $$
+  insert into public.dismissed_posts (id) values (post_id) on conflict (user_id, id) do update set dismissed_at = now();
+  delete from public.posts where id = post_id;
+$$;
+
 -- Deletes a folder and takes it off every post in one step.
 create or replace function public.delete_folder(folder uuid)
 returns void
@@ -142,8 +175,8 @@ as $$
   delete from public.tags where id = tag;
 $$;
 
-grant execute on function public.upsert_bookmarks(jsonb), public.remove_bookmark(text), public.delete_folder(uuid), public.delete_tag(uuid) to authenticated;
-revoke execute on function public.upsert_bookmarks(jsonb), public.remove_bookmark(text), public.delete_folder(uuid), public.delete_tag(uuid) from anon, public;
+grant execute on function public.upsert_bookmarks(jsonb), public.remove_bookmark(text), public.dismiss_post(text), public.delete_folder(uuid), public.delete_tag(uuid) to authenticated;
+revoke execute on function public.upsert_bookmarks(jsonb), public.remove_bookmark(text), public.dismiss_post(text), public.delete_folder(uuid), public.delete_tag(uuid) from anon, public;
 
 -- Live updates on every open device.
 do $$
