@@ -1,10 +1,9 @@
 import { useState } from 'react';
 import { Command } from 'cmdk';
 import { Popover } from '@base-ui/react/popover';
-import clsx from 'clsx';
 import { Check, Plus, X } from 'lucide-react';
 import { useTags, usePost } from '@/lib/hooks';
-import { createTagOn, nextTagColor, toggleTag } from '@/lib/actions';
+import { createTagOn, toggleTag } from '@/lib/actions';
 import { TAG_COLORS, type Post, type Tag, type TagColor } from '@/lib/types';
 
 export const tagColor = (c: TagColor) => `var(--tag-${c})`;
@@ -30,17 +29,41 @@ export function TagChip({ tag, onSearch, onRemove }: { tag: Tag; onSearch?: () =
   );
 }
 
+/** A random colour, avoiding the newest tag's so two new tags in a row look different. */
+function randomTagColor(tags: Tag[]): TagColor {
+  const last = tags[tags.length - 1]?.color;
+  const pool = TAG_COLORS.filter((c) => c !== last);
+  return pool[Math.floor(Math.random() * pool.length)];
+}
+
 export function AddTag({ post }: { post: Post }) {
   const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState('');
+  const tags = useTags();
+
+  // Whatever was typed is saved when the menu closes (a click anywhere else counts): an existing
+  // tag with that name is added, otherwise a new tag is made in a random colour. Escape discards it.
+  function onOpenChange(next: boolean, details: Popover.Root.ChangeEventDetails) {
+    setOpen(next);
+    if (next) return;
+    const name = search.trim();
+    setSearch('');
+    if (!name || details.reason === 'escape-key') return;
+    const existing = tags.find((t) => t.name.toLowerCase() === name.toLowerCase());
+    if (existing) {
+      if (!post.tagIds.includes(existing.id)) void toggleTag(post, existing.id);
+    } else void createTagOn(post, name, randomTagColor(tags));
+  }
+
   return (
-    <Popover.Root open={open} onOpenChange={setOpen}>
+    <Popover.Root open={open} onOpenChange={onOpenChange}>
       <Popover.Trigger className="press inline-flex h-6 items-center gap-1 rounded-full border border-dashed border-line pr-2.5 pl-2 text-xs text-muted outline-none hover:text-ink focus-visible:ring-2 focus-visible:ring-accent">
         <Plus size={12} strokeWidth={2.25} /> Add tag
       </Popover.Trigger>
       <Popover.Portal>
         <Popover.Positioner side="bottom" align="start" sideOffset={8} className="z-50">
           <Popover.Popup className="w-60 origin-[var(--transform-origin)] rounded-xl border border-line bg-surface shadow-pop outline-none transition-[scale,opacity] duration-150 ease-[var(--ease-out)] data-[ending-style]:scale-[0.96] data-[ending-style]:opacity-0 data-[ending-style]:duration-100 data-[starting-style]:scale-[0.96] data-[starting-style]:opacity-0">
-            <TagPicker postId={post.id} />
+            <TagPicker postId={post.id} search={search} setSearch={setSearch} />
           </Popover.Popup>
         </Popover.Positioner>
       </Popover.Portal>
@@ -48,14 +71,11 @@ export function AddTag({ post }: { post: Post }) {
   );
 }
 
-function TagPicker({ postId }: { postId: string }) {
+function TagPicker({ postId, search, setSearch }: { postId: string; search: string; setSearch: (s: string) => void }) {
   const post = usePost(postId);
   const tags = useTags();
-  const [search, setSearch] = useState('');
-  const [color, setColor] = useState<TagColor | null>(null);
   const name = search.trim();
   const exists = tags.some((t) => t.name.toLowerCase() === name.toLowerCase());
-  const chosen = color ?? nextTagColor(tags);
   if (!post) return null;
 
   return (
@@ -78,17 +98,13 @@ function TagPicker({ postId }: { postId: string }) {
             </Command.Item>
           );
         })}
-        {!name && tags.length === 0 && <p className="px-2 py-3 text-[13px] text-muted">Tags describe a post, like Reference or Recreate later.</p>}
-      </Command.List>
-      {name && !exists && (
-        <div className="border-t border-line p-1">
+        {name && !exists && (
           <Command.Item
             forceMount
             value={`create ${name}`}
             onSelect={async () => {
-              await createTagOn(post, name, chosen);
               setSearch('');
-              setColor(null);
+              await createTagOn(post, name, randomTagColor(tags));
             }}
             className="flex h-8 items-center gap-2 rounded-lg px-2 text-sm"
           >
@@ -97,22 +113,9 @@ function TagPicker({ postId }: { postId: string }) {
               Create <span className="font-medium">“{name}”</span>
             </span>
           </Command.Item>
-          <div className="flex gap-2 px-2 pt-1 pb-2" role="radiogroup" aria-label="Tag color">
-            {TAG_COLORS.map((c) => (
-              <button
-                key={c}
-                type="button"
-                role="radio"
-                aria-checked={chosen === c}
-                aria-label={c}
-                onClick={() => setColor(c)}
-                className={clsx('size-4 rounded-full outline-none', chosen === c && 'ring-2 ring-ink ring-offset-2 ring-offset-surface')}
-                style={{ background: tagColor(c) }}
-              />
-            ))}
-          </div>
-        </div>
-      )}
+        )}
+        {!name && tags.length === 0 && <p className="px-2 py-3 text-[13px] text-muted">Tags describe a post, like Reference or Recreate later.</p>}
+      </Command.List>
     </Command>
   );
 }

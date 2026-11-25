@@ -65,6 +65,3 @@ export async function createTagOn(post: Post, name: string, color: TagColor) {
 }
 
 /** The first color not used by an existing tag, so new tags stay easy to tell apart. */
-export function nextTagColor(tags: Tag[]): TagColor {
-  return TAG_COLORS.find((c) => !tags.some((t) => t.color === c)) ?? TAG_COLORS[tags.length % TAG_COLORS.length];
-}
