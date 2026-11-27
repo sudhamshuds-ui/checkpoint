@@ -8,7 +8,7 @@ Personal inspiration hub for X bookmarks. Two parts share one codebase:
 
 ## Layout
 
-- `src/components/` the dashboard UI, used by the website. Round 2 design: dark only, image-only tiles with square corners (PostCard), the post modal (PostDialog), tags (Tags), sidebar with sortable folders.
+- `src/components/` the dashboard UI, used by the website. Round 2 design: dark only, image-only tiles with square corners (PostCard), the post modal (PostDialog: tags, note, then folder chips that file in one click; no Sort button), tags (Tags), sidebar with sortable folders.
 - Views: `inbox` is shown as **X bookmarks** (unsorted), `feed` as **My feed** (every post with a folder), `folder` is one folder. Tile hover action: Sort in X bookmarks, the post's folder in My feed, none on folder pages.
 - Tags (colored, many per post) are separate from folders. `posts.tag_ids` + `tags` table.
 - `src/lib/data.ts` the website's data store: loads from Supabase, applies changes optimistically, listens to realtime so other devices and the extension update the screen live.

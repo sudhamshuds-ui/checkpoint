@@ -31,7 +31,7 @@ export function PostTags({ post }: { post: Post }) {
           </button>
         ),
       )}
-      <NewTag post={post} tags={tags} />
+      <InlineAdd label="New tag" placeholder="Tag name" onAdd={(name) => addByName(post, tags, name)} />
     </div>
   );
 }
@@ -69,12 +69,16 @@ function addByName(post: Post, tags: Tag[], typed: string) {
 }
 
 /**
- * "Add tag" turns into a text field in place. Enter adds the tag and stays ready for another;
- * clicking anywhere else adds it and closes; Escape closes without adding.
+ * A dashed "+ New" pill that turns into a text field in place. Enter adds and stays ready for another;
+ * clicking anywhere else adds and closes; Escape closes without adding.
  */
-function NewTag({ post, tags }: { post: Post; tags: Tag[] }) {
+export function InlineAdd({ label, placeholder, onAdd }: { label: string; placeholder: string; onAdd: (name: string) => void }) {
   const [editing, setEditing] = useState(false);
   const [value, setValue] = useState('');
+  const commit = () => {
+    if (value.trim()) onAdd(value.trim());
+    setValue('');
+  };
 
   if (!editing) {
     return (
@@ -83,7 +87,7 @@ function NewTag({ post, tags }: { post: Post; tags: Tag[] }) {
         onClick={() => setEditing(true)}
         className="press inline-flex h-6 items-center gap-1 rounded-full border border-dashed border-line pr-2.5 pl-2 text-xs text-muted outline-none hover:text-ink focus-visible:ring-2 focus-visible:ring-accent"
       >
-        <Plus size={12} strokeWidth={2.25} /> {tags.length ? 'New tag' : 'Add tag'}
+        <Plus size={12} strokeWidth={2.25} /> {label}
       </button>
     );
   }
@@ -94,10 +98,7 @@ function NewTag({ post, tags }: { post: Post; tags: Tag[] }) {
       value={value}
       onChange={(e) => setValue(e.target.value)}
       onKeyDown={(e) => {
-        if (e.key === 'Enter') {
-          addByName(post, tags, value);
-          setValue('');
-        }
+        if (e.key === 'Enter') commit();
         if (e.key === 'Escape') {
           e.stopPropagation(); // close the field, not the post
           setValue('');
@@ -105,12 +106,11 @@ function NewTag({ post, tags }: { post: Post; tags: Tag[] }) {
         }
       }}
       onBlur={() => {
-        addByName(post, tags, value);
-        setValue('');
+        commit();
         setEditing(false);
       }}
-      placeholder="Tag name"
-      aria-label="New tag name"
+      placeholder={placeholder}
+      aria-label={placeholder}
       size={Math.max(value.length, 8)}
       className="h-6 rounded-full border border-accent bg-sunken px-2.5 text-xs text-ink outline-none placeholder:text-faint"
     />

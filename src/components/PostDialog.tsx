@@ -1,12 +1,11 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
 import { Dialog } from '@base-ui/react/dialog';
 import { ChevronLeft, ChevronRight, Trash2, X } from 'lucide-react';
-import { useFolders, usePost } from '@/lib/hooks';
+import { usePost } from '@/lib/hooks';
 import { useUI } from '@/lib/store';
 import { removePost } from '@/lib/actions';
-import { FolderPopover } from './FolderPicker';
+import { FolderChips } from './FolderChips';
 import { MediaStage, NoteField, PostText } from './PostBody';
-import { Pill } from './PostCard';
 import { PostTags } from './Tags';
 
 export function PostDialog() {
@@ -15,8 +14,6 @@ export function PostDialog() {
   const openPost = useUI((s) => s.openPost);
   const visibleIds = useUI((s) => s.visibleIds);
   const post = usePost(openPostId);
-  const folders = useFolders();
-  const [sortOpen, setSortOpen] = useState(false);
 
   const view = useUI((s) => s.view);
   // Remember where the open post sat on the board. Once it's sorted out of the current view it no longer
@@ -41,14 +38,16 @@ export function PostDialog() {
     return () => window.removeEventListener('keydown', onKey);
   }, [openPostId, prevId, nextId, openPost]);
 
-  const folderNames = post ? post.folderIds.map((id) => folders.find((f) => f.id === id)?.name).filter(Boolean) : [];
-  const sortLabel = folderNames.length ? `${folderNames[0]}${folderNames.length > 1 ? ` +${folderNames.length - 1}` : ''}` : 'Sort';
 
   /** Sorting an unsorted post from X bookmarks moves straight on to the next one. */
   function afterSort(added: boolean) {
     if (!added || view.kind !== 'inbox' || !post || post.folderIds.length > 0) return;
     const following = visibleIds[at + 1] ?? (at > 0 ? visibleIds[at - 1] : undefined);
-    openPost(following ?? null);
+    const from = post.id;
+    // A beat to see the chip turn purple, then on to the next post (unless the window was closed or moved on).
+    window.setTimeout(() => {
+      if (useUI.getState().openPostId === from) openPost(following ?? null);
+    }, 180);
   }
 
   return (
@@ -71,19 +70,17 @@ export function PostDialog() {
                   </div>
                   <Dialog.Title className="sr-only">Post by {post.author.name}</Dialog.Title>
 
-                  <div className="flex min-h-0 flex-1 flex-col gap-6 overflow-y-auto px-6 pb-6">
+                  <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-6 pb-6">
                     <PostText post={post} />
-                    <section>
-                      <h3 className="mb-2 text-xs font-medium text-faint">Note</h3>
-                      <NoteField post={post} />
-                    </section>
-                    <section>
-                      <h3 className="mb-2 text-xs font-medium text-faint">Tags</h3>
-                      <PostTags post={post} />
+                    <PostTags post={post} />
+                    <NoteField post={post} />
+                    <section className="mt-2">
+                      <h3 className="mb-2 text-xs font-medium text-faint">Folder</h3>
+                      <FolderChips post={post} onPicked={afterSort} />
                     </section>
                   </div>
 
-                  <div className="flex items-center justify-between border-t border-line px-4 py-3">
+                  <div className="flex items-center justify-end border-t border-line px-4 py-3">
                     <button
                       type="button"
                       onClick={() => {
@@ -94,19 +91,6 @@ export function PostDialog() {
                     >
                       <Trash2 size={14} /> Remove
                     </button>
-                    <FolderPopover
-                      postId={post.id}
-                      open={sortOpen}
-                      onOpenChange={setSortOpen}
-                      side="top"
-                      align="end"
-                      onPicked={afterSort}
-                      trigger={
-                        <Pill selected={sortOpen} label={folderNames.length ? `In ${folderNames.join(', ')}. Change folder` : 'Sort into a folder'}>
-                          {sortLabel}
-                        </Pill>
-                      }
-                    />
                   </div>
                 </div>
               </div>
