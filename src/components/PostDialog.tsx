@@ -95,7 +95,8 @@ export function PostDialog() {
                     <button
                       type="button"
                       onClick={() => {
-                        openPost(null);
+                        // Stay in the window: show the next post (or the previous one at the end), then remove.
+                        openPost((inView ? visibleIds[at + 1] : visibleIds[at]) ?? (at > 0 ? visibleIds[at - 1] : undefined) ?? null);
                         removePost(post);
                       }}
                       className="press flex h-8 items-center gap-1.5 rounded-lg px-2 text-[13px] text-danger hover:bg-sunken"
