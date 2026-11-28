@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef } from 'react';
 import { useElementWidth } from '@/lib/hooks';
 import type { Folder, Post } from '@/lib/types';
 import { PostCard, type TileAction } from './PostCard';
@@ -44,8 +44,41 @@ export function Masonry({ posts, folders, action, viewKey }: { posts: Post[]; fo
     return cols;
   }, [posts, count, columnWidth, gap]);
 
+  // When a post leaves (removed, sorted away) the tiles after it slide into the gap instead of jumping.
+  const grid = useRef<HTMLDivElement>(null);
+  const boxes = useRef<{ key: string; width: number; at: Map<string, { x: number; y: number }> }>({ key: '', width: 0, at: new Map() });
+  const ids = posts.map((p) => p.id).join();
+  useLayoutEffect(() => {
+    const tiles = [...(grid.current?.querySelectorAll<HTMLElement>('[data-post-id]') ?? [])];
+    // Positions relative to the grid, so scrolling between changes doesn't count as movement.
+    const origin = grid.current?.getBoundingClientRect() ?? { left: 0, top: 0 };
+    const at = new Map(tiles.map((el) => {
+      const r = el.getBoundingClientRect();
+      return [el.dataset.postId!, { x: r.left - origin.left, y: r.top - origin.top }] as const;
+    }));
+    const before = boxes.current;
+    boxes.current = { key: viewKey, width, at };
+    if (before.key !== viewKey || before.width !== width || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    for (const el of tiles) {
+      const from = before.at.get(el.dataset.postId!);
+      const to = at.get(el.dataset.postId!);
+      if (!from || !to) continue;
+      const dx = from.x - to.x;
+      const dy = from.y - to.y;
+      if (Math.abs(dx) < 1 && Math.abs(dy) < 1) continue;
+      el.animate([{ transform: `translate(${dx}px, ${dy}px)` }, { transform: 'none' }], { duration: 250, easing: 'cubic-bezier(0.77, 0, 0.175, 1)' });
+    }
+  }, [ids, viewKey, width]);
+
   return (
-    <div ref={ref} className="flex items-start" style={{ gap }}>
+    <div
+      ref={(node) => {
+        ref(node);
+        grid.current = node;
+      }}
+      className="flex items-start"
+      style={{ gap }}
+    >
       {width > 0 &&
         columns.map((column, i) => (
           <div key={i} className="flex min-w-0 flex-1 flex-col" style={{ gap }}>

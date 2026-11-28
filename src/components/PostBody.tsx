@@ -50,7 +50,7 @@ export function MediaStage({ post, startIndex = 0 }: { post: Post; startIndex?: 
 
   return (
     <div className="relative flex h-full w-full items-center justify-center">
-      <div className={clsx('relative', ratio && 'bg-sunken')} style={frame}>
+      <div className={clsx('group/stage relative', ratio && 'bg-sunken')} style={frame}>
         <MediaView
           key={current.url}
           media={current}
@@ -63,7 +63,7 @@ export function MediaStage({ post, startIndex = 0 }: { post: Post; startIndex?: 
           onClick={copy}
           aria-label="Copy image"
           title="Copy image"
-          className="press absolute top-2 right-2 flex size-8 items-center justify-center rounded-full bg-black/60 text-white backdrop-blur-md ring-1 ring-white/20 ring-inset hover:bg-black/75"
+          className="press absolute top-2 right-2 flex size-8 items-center justify-center rounded-full bg-black/60 text-white backdrop-blur-md ring-1 ring-white/20 ring-inset hover:bg-black/75 [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover/stage:opacity-100 focus-visible:opacity-100 transition-[opacity,scale,background-color] duration-150"
         >
           <Copy size={14} strokeWidth={2} />
         </button>
@@ -99,7 +99,8 @@ function StageButton({ side, onClick }: { side: 'left' | 'right'; onClick: () =>
       onClick={onClick}
       aria-label={side === 'left' ? 'Previous image' : 'Next image'}
       className={clsx(
-        'press absolute top-1/2 flex size-8 -translate-y-1/2 items-center justify-center rounded-full bg-black/60 text-white backdrop-blur-md ring-1 ring-white/20 ring-inset hover:bg-black/75',
+        // Shown while the pointer is over the image (always on touch screens, and when focused with the keyboard).
+        'press absolute top-1/2 flex size-8 -translate-y-1/2 items-center justify-center rounded-full bg-black/60 text-white backdrop-blur-md ring-1 ring-white/20 ring-inset hover:bg-black/75 [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover/stage:opacity-100 focus-visible:opacity-100 transition-[opacity,scale,background-color] duration-150',
         side === 'left' ? 'left-2' : 'right-2',
       )}
     >

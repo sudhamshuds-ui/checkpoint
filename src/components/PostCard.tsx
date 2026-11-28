@@ -107,6 +107,7 @@ export const PostCard = memo(function PostCard({ post, folders, action, entering
       ref={setNodeRef}
       {...attributes}
       {...listeners}
+      data-post-id={post.id}
       aria-label={`Post by ${post.author.name}`}
       onClick={() => openPost(post.id, index)}
       onKeyDown={(e) => {
