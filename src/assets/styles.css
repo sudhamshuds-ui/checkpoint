@@ -123,6 +123,13 @@ body {
   }
 }
 
+/* The post being removed from the post window fades out before the next one comes in. */
+.post-leaving {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 120ms var(--ease-out);
+}
+
 /* Scrollbars: one thin rounded bar, no arrows or track, so they stay out of the way. */
 ::-webkit-scrollbar {
   width: 6px;

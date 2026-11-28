@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Dialog } from '@base-ui/react/dialog';
 import { ChevronLeft, ChevronRight, Trash2, X } from 'lucide-react';
 import { usePost } from '@/lib/hooks';
@@ -22,11 +22,17 @@ export function PostDialog() {
   // Changing post by click fades the new one in; with the arrow keys it's instant, so stepping stays fast.
   const byKeyboard = useRef(false);
   const shownId = useRef<string | null>(null);
-  const enter = openPostId !== shownId.current && shownId.current !== null && !byKeyboard.current ? 'post-enter' : '';
+  // The post that should fade in. Kept per post so a re-render mid-fade doesn't drop the class.
+  const fadeId = useRef<string | null>(null);
+  if (openPostId !== shownId.current) fadeId.current = shownId.current !== null && !byKeyboard.current ? openPostId : null;
+  // Removing fades the post out first, then the next one fades in.
+  const [leaving, setLeaving] = useState(false);
   useEffect(() => {
     shownId.current = openPostId;
     byKeyboard.current = false;
+    setLeaving(false);
   }, [openPostId]);
+  const fade = leaving ? 'post-leaving' : fadeId.current === openPostId ? 'post-enter' : '';
   const found = openPostId ? visibleIds.indexOf(openPostId) : -1;
   if (found !== -1) lastIndex.current = found;
   const inView = found !== -1;
@@ -68,7 +74,7 @@ export function PostDialog() {
             <>
               <div className="flex h-full flex-col overflow-y-auto rounded-2xl border border-line bg-surface shadow-pop md:flex-row md:overflow-hidden">
                 <div className="relative flex min-h-[45vh] shrink-0 items-center justify-center bg-bg px-16 pt-16 pb-20 md:min-h-0 md:flex-1 md:shrink">
-                  <div key={post.id} className={`flex h-full w-full items-center justify-center ${enter}`}>
+                  <div key={post.id} className={`flex h-full w-full items-center justify-center ${fade}`}>
                     <MediaStage post={post} startIndex={openMediaIndex} />
                   </div>
                 </div>
@@ -81,7 +87,7 @@ export function PostDialog() {
                   </div>
                   <Dialog.Title className="sr-only">Post by {post.author.name}</Dialog.Title>
 
-                  <div key={post.id} className={`flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-6 pb-6 ${enter}`}>
+                  <div key={post.id} className={`flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-6 pb-6 ${fade}`}>
                     <PostText post={post} />
                     <PostTags post={post} />
                     <NoteField post={post} />
@@ -95,9 +101,14 @@ export function PostDialog() {
                     <button
                       type="button"
                       onClick={() => {
-                        // Stay in the window: show the next post (or the previous one at the end), then remove.
-                        openPost((inView ? visibleIds[at + 1] : visibleIds[at]) ?? (at > 0 ? visibleIds[at - 1] : undefined) ?? null);
-                        removePost(post);
+                        if (leaving) return;
+                        // Stay in the window: fade this post out, show the next one (or the previous one at the end), then remove.
+                        const following = (inView ? visibleIds[at + 1] : visibleIds[at]) ?? (at > 0 ? visibleIds[at - 1] : undefined) ?? null;
+                        setLeaving(true);
+                        window.setTimeout(() => {
+                          openPost(following);
+                          removePost(post);
+                        }, 120);
                       }}
                       className="press flex h-8 items-center gap-1.5 rounded-lg px-2 text-[13px] text-danger hover:bg-sunken"
                     >
