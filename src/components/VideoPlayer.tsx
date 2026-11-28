@@ -10,7 +10,7 @@ const clock = (s: number) => {
 
 /**
  * The post window's video player, in X's style: a thin scrubbable line, then play and time on the
- * left and sound and fullscreen on the right, over a soft fade. Starts playing muted. The controls
+ * left and sound and fullscreen on the right, over a soft fade. Starts playing muted and loops. The controls
  * hide while it plays and come back when the pointer moves.
  */
 export function VideoPlayer({ media, poster, className, onError }: { media: Media; poster: string; className?: string; onError: () => void }) {
@@ -100,6 +100,7 @@ export function VideoPlayer({ media, poster, className, onError }: { media: Medi
         src={media.videoUrl}
         poster={poster}
         muted
+        loop // like X: short clips keep playing instead of stopping on a full progress line
         playsInline
         preload="auto"
         onClick={toggle}
@@ -143,7 +144,7 @@ export function VideoPlayer({ media, poster, className, onError }: { media: Medi
             setTime(video.currentTime);
           }}
         >
-          <div className={clsx('relative w-full rounded-full bg-white/30 transition-[height] duration-150 ease-[var(--ease-out)] group-hover/bar:h-1 group-focus-visible/bar:h-1', scrubbing ? 'h-1' : 'h-0.5')}>
+          <div className={clsx('relative w-full rounded-full bg-white/30 shadow-[0_0_2px_rgb(0_0_0/0.5)] transition-[height] duration-150 ease-[var(--ease-out)] group-hover/bar:h-1 group-focus-visible/bar:h-1', scrubbing ? 'h-1' : 'h-0.5')}>
             <div className="absolute inset-y-0 left-0 rounded-full bg-white" style={{ width: `${progress * 100}%` }} />
           </div>
         </div>
