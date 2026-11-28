@@ -90,7 +90,7 @@ export function VideoPlayer({ media, poster, className, onError }: { media: Medi
   return (
     <div
       ref={rootRef}
-      className={clsx('group/player relative h-full w-full bg-black', !shown && 'cursor-none', className)}
+      className={clsx('group/player relative h-full w-full overflow-hidden bg-black', !shown && 'cursor-none', className)}
       onPointerMove={wake}
       onPointerLeave={() => setAwake(false)}
     >
@@ -117,7 +117,8 @@ export function VideoPlayer({ media, poster, className, onError }: { media: Medi
 
       <div
         className={clsx(
-          'absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent px-3 pt-10 pb-2 text-white transition-opacity ease-[var(--ease-out)]',
+          // Reaches 1px past the bottom (clipped by the player) so no bright row of the video peeks out under the fade.
+          'absolute inset-x-0 -bottom-px bg-gradient-to-t from-black/70 to-transparent px-3 pt-10 pb-2 text-white transition-opacity ease-[var(--ease-out)]',
           shown ? 'opacity-100 duration-200' : 'pointer-events-none opacity-0 duration-150',
         )}
       >
