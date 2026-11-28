@@ -66,8 +66,9 @@ export function Masonry({ posts, folders, action, viewKey }: { posts: Post[]; fo
       const dx = from.x - to.x;
       const dy = from.y - to.y;
       if (Math.abs(dx) < 1 && Math.abs(dy) < 1) continue;
-      // Moves off at once and glides to a stop (iOS-style curve), so the reflow reads as one calm settle.
-      el.animate([{ transform: `translate(${dx}px, ${dy}px)` }, { transform: 'none' }], { duration: 450, easing: 'cubic-bezier(0.32, 0.72, 0, 1)' });
+      // Moves off at once and glides to a stop. Same 400ms and curve as the post window's next-post fade
+      // (.post-enter, --ease-settle), so the two move together.
+      el.animate([{ transform: `translate(${dx}px, ${dy}px)` }, { transform: 'none' }], { duration: 400, easing: 'cubic-bezier(0.32, 0.72, 0, 1)' });
     }
   }, [ids, viewKey, width]);
 

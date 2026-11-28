@@ -58,11 +58,7 @@ export function PostDialog() {
   function afterSort(added: boolean) {
     if (!added || view.kind !== 'inbox' || !post || post.folderIds.length > 0) return;
     const following = visibleIds[at + 1] ?? (at > 0 ? visibleIds[at - 1] : undefined);
-    const from = post.id;
-    // A beat to see the chip turn purple, then on to the next post (unless the window was closed or moved on).
-    window.setTimeout(() => {
-      if (useUI.getState().openPostId === from) openPost(following ?? null);
-    }, 180);
+    openPost(following ?? null);
   }
 
   return (
@@ -107,7 +103,7 @@ export function PostDialog() {
                         setLeaving(true);
                         window.setTimeout(() => {
                           openPost(following);
-                          removePost(post);
+                          void removePost(post); // same frame as the next post, so the grid and the window move together
                         }, 120);
                       }}
                       className="press flex h-8 items-center gap-1.5 rounded-lg px-2 text-[13px] text-danger hover:bg-sunken"

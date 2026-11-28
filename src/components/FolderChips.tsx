@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import clsx from 'clsx';
 import { Folder as FolderIcon } from 'lucide-react';
 import { useFolders } from '@/lib/hooks';
@@ -13,9 +14,19 @@ import { InlineAdd } from './Tags';
 export function FolderChips({ post, onPicked }: { post: Post; onPicked?: (added: boolean) => void }) {
   const folders = useFolders();
 
+  // The chip turns purple at once; a beat later the post is filed, and the grid and the next post move together.
+  const [pending, setPending] = useState<string | null>(null);
   async function pick(id: string, name: string) {
+    if (pending) return;
     const added = !post.folderIds.includes(id);
-    await toggleFolder(post, id, name);
+    if (added) {
+      setPending(id);
+      await new Promise((r) => setTimeout(r, 180));
+    }
+    // The change shows locally at once and saves in the background; move on now rather than after the save,
+    // so the grid reflow and the next post start on the same frame.
+    void toggleFolder(post, id, name);
+    setPending(null);
     onPicked?.(added);
   }
 
@@ -26,14 +37,14 @@ export function FolderChips({ post, onPicked }: { post: Post; onPicked?: (added:
       return;
     }
     const id = await createFolder(typed);
-    await toggleFolder(post, id, typed);
+    void toggleFolder(post, id, typed);
     onPicked?.(true);
   }
 
   return (
     <div className="flex flex-wrap gap-2">
       {folders.map((folder) => {
-        const on = post.folderIds.includes(folder.id);
+        const on = post.folderIds.includes(folder.id) || pending === folder.id;
         return (
           <button
             key={folder.id}
