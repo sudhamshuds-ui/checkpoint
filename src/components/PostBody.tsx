@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import clsx from 'clsx';
 import { ArrowUpRight, ChevronLeft, ChevronRight, Copy, Link2 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -109,6 +109,34 @@ function StageButton({ side, onClick }: { side: 'left' | 'right'; onClick: () =>
   );
 }
 
+/** Long captions show their first 6 lines with Read more, so tags and folders stay in view. */
+function Caption({ text }: { text: string }) {
+  const ref = useRef<HTMLParagraphElement>(null);
+  const [open, setOpen] = useState(false);
+  const [long, setLong] = useState(false);
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (el && !open) setLong(el.scrollHeight > el.clientHeight + 1);
+  }, [text, open]);
+  return (
+    <div className="mt-4">
+      <p ref={ref} className={clsx('text-[14.5px] leading-[1.55] whitespace-pre-line break-words', !open && 'line-clamp-6')}>
+        {text}
+      </p>
+      {long && (
+        <button
+          type="button"
+          onClick={() => setOpen((o) => !o)}
+          aria-expanded={open}
+          className="press mt-1 rounded text-[13px] font-medium text-muted outline-none hover:text-ink focus-visible:ring-2 focus-visible:ring-accent"
+        >
+          {open ? 'Show less' : 'Read more'}
+        </button>
+      )}
+    </div>
+  );
+}
+
 export function PostText({ post, showText = true }: { post: Post; showText?: boolean }) {
   return (
     <div>
@@ -121,7 +149,7 @@ export function PostText({ post, showText = true }: { post: Post; showText?: boo
           </span>
         </span>
       </a>
-      {showText && post.text && <p className="mt-4 text-[14.5px] leading-[1.55] whitespace-pre-line break-words">{post.text}</p>}
+      {showText && post.text && <Caption key={post.id} text={post.text} />}
       {post.link && (post.media.length > 0 || !post.link.image) && (
         <a href={post.link.url} target="_blank" rel="noreferrer" className="mt-4 flex items-center gap-2 rounded-xl border border-line p-3 text-[13px] hover:bg-sunken/50">
           <Link2 size={14} className="shrink-0 text-faint" />
