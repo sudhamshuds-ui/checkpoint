@@ -117,8 +117,8 @@ export function VideoPlayer({ media, poster, className, onError }: { media: Medi
 
       <div
         className={clsx(
-          'absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent px-3 pt-10 pb-2 text-white transition-opacity duration-200',
-          shown ? 'opacity-100' : 'pointer-events-none opacity-0',
+          'absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent px-3 pt-10 pb-2 text-white transition-opacity ease-[var(--ease-out)]',
+          shown ? 'opacity-100 duration-200' : 'pointer-events-none opacity-0 duration-150',
         )}
       >
         {/* Scrub line: a tall invisible hit area around a 2px line that thickens on hover. */}
@@ -144,14 +144,20 @@ export function VideoPlayer({ media, poster, className, onError }: { media: Medi
             setTime(video.currentTime);
           }}
         >
-          <div className={clsx('relative w-full rounded-full bg-white/30 shadow-[0_0_2px_rgb(0_0_0/0.5)] transition-[height] duration-150 ease-[var(--ease-out)] group-hover/bar:h-1 group-focus-visible/bar:h-1', scrubbing ? 'h-1' : 'h-0.5')}>
-            <div className="absolute inset-y-0 left-0 rounded-full bg-white" style={{ width: `${progress * 100}%` }} />
+          {/* Drawn at 4px and shown at half height; it grows on hover or while scrubbing. Transforms only, no layout. */}
+          <div
+            className={clsx(
+              'relative h-1 w-full overflow-hidden rounded-full bg-white/30 shadow-[0_0_2px_rgb(0_0_0/0.5)] transition-transform duration-150 ease-[var(--ease-out)] group-hover/bar:scale-y-100 group-focus-visible/bar:scale-y-100 motion-reduce:transition-none',
+              scrubbing ? 'scale-y-100' : 'scale-y-50',
+            )}
+          >
+            <div className="absolute inset-0 origin-left bg-white" style={{ transform: `scaleX(${progress})` }} />
           </div>
         </div>
 
         <div className="mt-1 flex items-center gap-1">
           <ControlButton label={playing ? 'Pause' : 'Play'} onClick={toggle}>
-            {playing ? <Pause size={18} fill="currentColor" strokeWidth={0} /> : <Play size={18} fill="currentColor" strokeWidth={0} />}
+            <Swap on={playing} a={<Pause size={18} fill="currentColor" strokeWidth={0} />} b={<Play size={18} fill="currentColor" strokeWidth={0} />} />
           </ControlButton>
           <span className="tabular ml-1 text-xs font-medium">
             {clock(time)} / {clock(length)}
@@ -164,7 +170,7 @@ export function VideoPlayer({ media, poster, className, onError }: { media: Medi
               if (video) video.muted = !video.muted;
             }}
           >
-            {muted ? <VolumeX size={18} strokeWidth={2} /> : <Volume2 size={18} strokeWidth={2} />}
+            <Swap on={muted} a={<VolumeX size={18} strokeWidth={2} />} b={<Volume2 size={18} strokeWidth={2} />} />
           </ControlButton>
           <ControlButton
             label={fullscreen ? 'Exit full screen' : 'Full screen'}
@@ -178,6 +184,18 @@ export function VideoPlayer({ media, poster, className, onError }: { media: Medi
         </div>
       </div>
     </div>
+  );
+}
+
+/** Two icons in one spot: the outgoing one shrinks and blurs out as the other comes in (150ms). */
+function Swap({ on, a, b }: { on: boolean; a: ReactNode; b: ReactNode }) {
+  const icon = 'col-start-1 row-start-1 transition-[opacity,scale,filter] duration-150 ease-[var(--ease-out)] motion-reduce:transition-opacity';
+  const hidden = 'scale-[0.8] opacity-0 blur-[2px]';
+  return (
+    <span className="grid place-items-center">
+      <span className={clsx(icon, !on && hidden)}>{a}</span>
+      <span className={clsx(icon, on && hidden)}>{b}</span>
+    </span>
   );
 }
 

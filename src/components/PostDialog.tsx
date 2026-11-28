@@ -19,6 +19,14 @@ export function PostDialog() {
   // Remember where the open post sat on the board. Once it's sorted out of the current view it no longer
   // appears there, and its neighbours close the gap: the next post now sits at the same index.
   const lastIndex = useRef(-1);
+  // Changing post by click fades the new one in; with the arrow keys it's instant, so stepping stays fast.
+  const byKeyboard = useRef(false);
+  const shownId = useRef<string | null>(null);
+  const enter = openPostId !== shownId.current && shownId.current !== null && !byKeyboard.current ? 'post-enter' : '';
+  useEffect(() => {
+    shownId.current = openPostId;
+    byKeyboard.current = false;
+  }, [openPostId]);
   const found = openPostId ? visibleIds.indexOf(openPostId) : -1;
   if (found !== -1) lastIndex.current = found;
   const inView = found !== -1;
@@ -30,12 +38,13 @@ export function PostDialog() {
   useEffect(() => {
     if (!openPostId) return;
     const onKey = (e: KeyboardEvent) => {
-      if ((e.target as HTMLElement).closest('textarea, input, [cmdk-root]')) return;
-      if (e.key === 'ArrowLeft' && prevId) openPost(prevId);
-      if (e.key === 'ArrowRight' && nextId) openPost(nextId);
+      if ((e.target as HTMLElement).closest?.('textarea, input, [cmdk-root], [role=slider]')) return;
+      if (e.key === 'ArrowLeft' && prevId) (byKeyboard.current = true), openPost(prevId);
+      if (e.key === 'ArrowRight' && nextId) (byKeyboard.current = true), openPost(nextId);
     };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
+    // Capture phase: the dialog stops arrow keys before they bubble up to the window.
+    window.addEventListener('keydown', onKey, true);
+    return () => window.removeEventListener('keydown', onKey, true);
   }, [openPostId, prevId, nextId, openPost]);
 
 
@@ -59,7 +68,9 @@ export function PostDialog() {
             <>
               <div className="flex h-full flex-col overflow-y-auto rounded-2xl border border-line bg-surface shadow-pop md:flex-row md:overflow-hidden">
                 <div className="relative flex min-h-[45vh] shrink-0 items-center justify-center bg-bg px-16 pt-16 pb-20 md:min-h-0 md:flex-1 md:shrink">
-                  <MediaStage post={post} startIndex={openMediaIndex} />
+                  <div key={post.id} className={`flex h-full w-full items-center justify-center ${enter}`}>
+                    <MediaStage post={post} startIndex={openMediaIndex} />
+                  </div>
                 </div>
 
                 <div className="flex w-full shrink-0 flex-col border-line md:w-80 md:border-l">
@@ -70,7 +81,7 @@ export function PostDialog() {
                   </div>
                   <Dialog.Title className="sr-only">Post by {post.author.name}</Dialog.Title>
 
-                  <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-6 pb-6">
+                  <div key={post.id} className={`flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-6 pb-6 ${enter}`}>
                     <PostText post={post} />
                     <PostTags post={post} />
                     <NoteField post={post} />

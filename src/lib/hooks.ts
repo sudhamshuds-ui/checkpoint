@@ -46,14 +46,20 @@ export function matches(post: Post, query: string, tagNames: Map<string, string>
     .some((field) => field!.toLowerCase().includes(q));
 }
 
-export function filterView(posts: Post[], view: View, query: string, tags: Tag[] = []) {
-  const tagNames = new Map(tags.map((t) => [t.id, t.name]));
+/** The posts that belong to a view, before any search or tag filter. */
+export function inView(posts: Post[], view: View) {
   return posts.filter((p) => {
-    if (view.kind === 'inbox' && !isInbox(p)) return false;
-    if (view.kind === 'feed' && !isSorted(p)) return false;
-    if (view.kind === 'folder' && !p.folderIds.includes(view.folderId)) return false;
-    return view.kind === 'inbox' || matches(p, query, tagNames);
+    if (view.kind === 'inbox') return isInbox(p);
+    if (view.kind === 'feed') return isSorted(p);
+    return p.folderIds.includes(view.folderId);
   });
+}
+
+export function filterView(posts: Post[], view: View, query: string, tags: Tag[] = [], tagFilter: string[] = []) {
+  const tagNames = new Map(tags.map((t) => [t.id, t.name]));
+  return inView(posts, view).filter(
+    (p) => view.kind === 'inbox' || (matches(p, query, tagNames) && tagFilter.every((id) => p.tagIds.includes(id))),
+  );
 }
 
 export function useElementWidth<T extends HTMLElement>() {

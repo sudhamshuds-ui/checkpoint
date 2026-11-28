@@ -20,6 +20,10 @@ export function MediaView({ media, mode, playing = false, className, fallbackHre
   const [videoFailed, setVideoFailed] = useState(false);
   const [imageFailed, setImageFailed] = useState(false);
   const [progress, setProgress] = useState(0);
+  const lastProgress = useRef(0);
+  useEffect(() => {
+    lastProgress.current = progress;
+  });
   const isVideo = media.type !== 'photo' && media.videoUrl && !videoFailed;
   const fit = mode === 'card' ? 'object-cover' : 'object-contain';
 
@@ -63,7 +67,8 @@ export function MediaView({ media, mode, playing = false, className, fallbackHre
       />
       {mode === 'card' && playing && (
         <span aria-hidden className="pointer-events-none absolute inset-x-0 bottom-0 h-0.5 bg-white/25">
-          <span className="block h-full origin-left bg-white transition-transform duration-[250ms] ease-linear" style={{ transform: `scaleX(${progress})` }} />
+          {/* Moves forward smoothly; when the clip loops it snaps back to the start instead of sweeping backwards. */}
+          <span className={clsx('block h-full origin-left bg-white', progress >= lastProgress.current && 'transition-transform duration-[250ms] ease-linear')} style={{ transform: `scaleX(${progress})` }} />
         </span>
       )}
       </>

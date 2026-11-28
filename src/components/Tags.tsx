@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useLayoutEffect, useRef, useState } from 'react';
 import { Plus } from 'lucide-react';
 import { useTags } from '@/lib/hooks';
 import { createTagOn, toggleTag } from '@/lib/actions';
@@ -13,14 +13,16 @@ export const tagColor = (c: TagColor) => `var(--tag-${c})`;
 export function PostTags({ post }: { post: Post }) {
   const tags = useTags();
   const ordered = [...tags.filter((t) => post.tagIds.includes(t.id)), ...tags.filter((t) => !post.tagIds.includes(t.id))];
+  const rowRef = useSlideOnReorder(post.id, ordered.map((t) => t.id).join());
   return (
-    <div className="flex flex-wrap gap-2">
+    <div ref={rowRef} className="flex flex-wrap gap-2">
       {ordered.map((tag) =>
         post.tagIds.includes(tag.id) ? (
-          <TagChip key={tag.id} tag={tag} onRemove={() => toggleTag(post, tag.id)} />
+          <TagChip key={tag.id} id={tag.id} tag={tag} onRemove={() => toggleTag(post, tag.id)} />
         ) : (
           <button
             key={tag.id}
+            data-slide={tag.id}
             type="button"
             onClick={() => toggleTag(post, tag.id)}
             title={`Add ${tag.name}`}
@@ -36,10 +38,39 @@ export function PostTags({ post }: { post: Post }) {
   );
 }
 
+/**
+ * When a tag moves (added tags go first), every chip slides from where it was to where it is now,
+ * so your eye can follow the one you clicked. Not when switching posts, and not with reduced motion.
+ */
+function useSlideOnReorder(postId: string, order: string) {
+  const ref = useRef<HTMLDivElement>(null);
+  const last = useRef<{ postId: string; boxes: Map<string, DOMRect> }>({ postId: '', boxes: new Map() });
+  useLayoutEffect(() => {
+    const row = ref.current;
+    if (!row) return;
+    const chips = [...row.querySelectorAll<HTMLElement>('[data-slide]')];
+    const boxes = new Map(chips.map((el) => [el.dataset.slide!, el.getBoundingClientRect()]));
+    const before = last.current;
+    last.current = { postId, boxes };
+    if (before.postId !== postId || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    for (const el of chips) {
+      const from = before.boxes.get(el.dataset.slide!);
+      const to = boxes.get(el.dataset.slide!);
+      if (!from || !to) continue;
+      const dx = from.left - to.left;
+      const dy = from.top - to.top;
+      if (!dx && !dy) continue;
+      el.animate([{ transform: `translate(${dx}px, ${dy}px)` }, { transform: 'none' }], { duration: 200, easing: 'cubic-bezier(0.77, 0, 0.175, 1)' });
+    }
+  }, [postId, order]);
+  return ref;
+}
+
 /** A tag on a post. Clicking it takes it off again. */
-export function TagChip({ tag, onRemove }: { tag: Tag; onRemove?: () => void }) {
+export function TagChip({ tag, onRemove, id }: { tag: Tag; onRemove?: () => void; id?: string }) {
   return (
     <button
+      data-slide={id}
       type="button"
       onClick={onRemove}
       title={`Remove ${tag.name}`}

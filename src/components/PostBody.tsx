@@ -56,7 +56,7 @@ export function MediaStage({ post, startIndex = 0 }: { post: Post; startIndex?: 
           media={current}
           mode="detail"
           fallbackHref={post.url}
-          className={ratio ? undefined : 'max-h-[min(560px,calc(100dvh-224px))] !w-auto max-w-full'}
+          className={clsx('media-enter', !ratio && 'max-h-[min(560px,calc(100dvh-224px))] !w-auto max-w-full')}
         />
         <button
           type="button"

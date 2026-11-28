@@ -16,13 +16,15 @@ import { arrayMove } from '@dnd-kit/sortable';
 import Lenis from 'lenis';
 import { Toaster, toast } from 'sonner';
 import { ArrowRight, Search, X } from 'lucide-react';
-import { filterView, useCounts, useFolders, usePosts, useTags } from '@/lib/hooks';
+import { filterView, inView, useCounts, useFolders, usePosts, useTags } from '@/lib/hooks';
 import { useUI } from '@/lib/store';
 import { reorderFolders, useData } from '@/lib/data';
 import { moveToFolder, sendToInbox } from '@/lib/actions';
 import { plural } from '@/lib/format';
 import { startSync, useExtension } from '@/lib/extension';
-import type { Folder, Post } from '@/lib/types';
+import type { Folder, Post, Tag } from '@/lib/types';
+import clsx from 'clsx';
+import { tagColor } from './Tags';
 import { MobileNav, Sidebar } from './Sidebar';
 import { Masonry } from './Masonry';
 import { DragPreview, type TileAction } from './PostCard';
@@ -170,7 +172,14 @@ function MainView({ posts, folders }: { posts: Post[]; folders: Folder[] }) {
   const searchRef = useRef<HTMLInputElement>(null);
   const searchable = view.kind !== 'inbox';
 
-  const visible = useMemo(() => filterView(posts, view, query, tags), [posts, view, query, tags]);
+  const tagFilter = useUI((s) => s.tagFilter);
+  const visible = useMemo(() => filterView(posts, view, query, tags, tagFilter), [posts, view, query, tags, tagFilter]);
+  // Only the tags used on this view's posts, in your tag order. A picked tag stays listed even if nothing matches.
+  const viewTags = useMemo(() => {
+    if (view.kind === 'inbox') return [];
+    const used = new Set(inView(posts, view).flatMap((p) => p.tagIds));
+    return tags.filter((t) => used.has(t.id) || tagFilter.includes(t.id));
+  }, [posts, view, tags, tagFilter]);
   useEffect(() => setVisibleIds(visible.map((p) => p.id)), [visible, setVisibleIds]);
 
   // "/" jumps to search where there is one.
@@ -202,7 +211,9 @@ function MainView({ posts, folders }: { posts: Post[]; folders: Folder[] }) {
           )}
         </div>
         {searchable && (
-          <label className="relative flex w-full items-center sm:w-72">
+          <div className="flex w-full min-w-0 flex-wrap items-center justify-end gap-2 sm:w-auto sm:flex-nowrap">
+          {viewTags.length > 0 && <TagFilter tags={viewTags} />}
+          <label className="relative flex w-full shrink-0 items-center sm:w-72">
             <Search size={15} className="pointer-events-none absolute left-2.5 text-faint" />
             <input
               ref={searchRef}
@@ -229,6 +240,7 @@ function MainView({ posts, folders }: { posts: Post[]; folders: Folder[] }) {
             )}
             {!query && <kbd className="pointer-events-none absolute right-2 rounded border border-line px-1 font-mono text-[11px] text-faint">/</kbd>}
           </label>
+          </div>
         )}
       </header>
 
@@ -237,8 +249,10 @@ function MainView({ posts, folders }: { posts: Post[]; folders: Folder[] }) {
           <Masonry posts={visible} folders={folders} action={action} viewKey={view.kind === 'folder' ? `folder:${view.folderId}` : view.kind} />
         ) : (
           <Empty>
-            {query && searchable
-              ? `Nothing matches “${query}”.`
+            {(query || tagFilter.length) && searchable
+              ? query
+                ? `Nothing matches “${query}”${tagFilter.length ? ' with those tags' : ''}.`
+                : 'No posts here have all of those tags.'
               : view.kind === 'inbox'
                 ? 'All sorted. New bookmarks from X land here.'
                 : view.kind === 'feed'
@@ -297,6 +311,35 @@ function Welcome() {
           </p>
         )}
       </div>
+    </div>
+  );
+}
+
+/** The tags used in this view, beside the search. Click to show only posts with that tag; click again to clear. */
+function TagFilter({ tags }: { tags: Tag[] }) {
+  const picked = useUI((s) => s.tagFilter);
+  const toggle = useUI((s) => s.toggleTagFilter);
+  return (
+    <div className="flex min-w-0 flex-wrap items-center justify-end gap-2" role="group" aria-label="Filter by tag">
+      {tags.map((tag) => {
+        const on = picked.includes(tag.id);
+        return (
+          <button
+            key={tag.id}
+            type="button"
+            aria-pressed={on}
+            onClick={() => toggle(tag.id)}
+            title={on ? `Stop filtering by ${tag.name}` : `Show only posts tagged ${tag.name}`}
+            className={clsx(
+              'press inline-flex h-7 items-center rounded-full px-3 text-xs font-medium outline-none focus-visible:ring-2 focus-visible:ring-accent',
+              on ? 'text-white' : 'bg-surface text-muted hover:text-ink',
+            )}
+            style={on ? { background: tagColor(tag.color) } : undefined}
+          >
+            {tag.name}
+          </button>
+        );
+      })}
     </div>
   );
 }

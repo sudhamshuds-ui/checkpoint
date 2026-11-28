@@ -114,6 +114,41 @@ body {
   }
 }
 
+/* The next post in the post window, and the next image in a carousel, fade in (opacity only, so it stays calm). */
+.post-enter,
+.media-enter {
+  transition: opacity 150ms var(--ease-out);
+  @starting-style {
+    opacity: 0;
+  }
+}
+
+/* Scrollbars: one thin rounded bar, no arrows or track, so they stay out of the way. */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track,
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+::-webkit-scrollbar-button {
+  display: none;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--line);
+  border-radius: 999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--faint);
+}
+@supports not selector(::-webkit-scrollbar) {
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--line) transparent;
+  }
+}
+
 /* Reduced motion: fewer and gentler, not none. Fades and color changes stay; scaling and the spinning icon go. (Smooth scrolling and the drop shrink check this setting in JS.) */
 @media (prefers-reduced-motion: reduce) {
   [data-starting-style],

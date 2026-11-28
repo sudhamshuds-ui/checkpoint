@@ -6,6 +6,8 @@ export type View = { kind: 'inbox' } | { kind: 'feed' } | { kind: 'folder'; fold
 interface UIState {
   view: View;
   query: string;
+  /** Tags picked in the header to narrow the view; a post must have all of them. */
+  tagFilter: string[];
   /** Post open in the detail dialog. */
   openPostId: string | null;
   /** Which image of a carousel the post opened on. */
@@ -14,6 +16,7 @@ interface UIState {
   visibleIds: string[];
   setView: (view: View) => void;
   setQuery: (query: string) => void;
+  toggleTagFilter: (id: string) => void;
   openPost: (id: string | null, mediaIndex?: number) => void;
   setVisibleIds: (ids: string[]) => void;
 }
@@ -30,6 +33,7 @@ const savedView = (): View => {
 export const useUI = create<UIState>((set) => ({
   view: savedView(),
   query: '',
+  tagFilter: [],
   openPostId: null,
   openMediaIndex: 0,
   visibleIds: [],
@@ -37,9 +41,10 @@ export const useUI = create<UIState>((set) => ({
     try {
       localStorage.setItem('checkpoint:view', JSON.stringify(view));
     } catch {}
-    set({ view, query: '' });
+    set({ view, query: '', tagFilter: [] });
   },
   setQuery: (query) => set({ query }),
+  toggleTagFilter: (id) => set((s) => ({ tagFilter: s.tagFilter.includes(id) ? s.tagFilter.filter((t) => t !== id) : [...s.tagFilter, id] })),
   openPost: (openPostId, openMediaIndex = 0) => set({ openPostId, openMediaIndex }),
   setVisibleIds: (visibleIds) => set({ visibleIds }),
 }));
