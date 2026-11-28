@@ -66,7 +66,8 @@ export function Masonry({ posts, folders, action, viewKey }: { posts: Post[]; fo
       const dx = from.x - to.x;
       const dy = from.y - to.y;
       if (Math.abs(dx) < 1 && Math.abs(dy) < 1) continue;
-      el.animate([{ transform: `translate(${dx}px, ${dy}px)` }, { transform: 'none' }], { duration: 250, easing: 'cubic-bezier(0.77, 0, 0.175, 1)' });
+      // Moves off at once and glides to a stop (iOS-style curve), so the reflow reads as one calm settle.
+      el.animate([{ transform: `translate(${dx}px, ${dy}px)` }, { transform: 'none' }], { duration: 450, easing: 'cubic-bezier(0.32, 0.72, 0, 1)' });
     }
   }, [ids, viewKey, width]);
 
