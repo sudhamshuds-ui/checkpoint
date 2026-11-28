@@ -205,15 +205,16 @@ function MainView({ posts, folders }: { posts: Post[]; folders: Folder[] }) {
     <>
       <header className="sticky top-0 z-10 flex flex-wrap items-end justify-between gap-x-6 gap-y-3 bg-bg/80 px-4 pt-6 pb-6 backdrop-blur-xl md:px-14 md:pt-10">
         <div className="min-w-0">
-          <h1 className="truncate text-2xl font-semibold tracking-[-0.02em]">{title}</h1>
+          <div className="flex min-w-0 flex-wrap items-center gap-x-4 gap-y-2">
+            <h1 className="truncate text-2xl font-semibold tracking-[-0.02em]">{title}</h1>
+            {searchable && viewTags.length > 0 && <TagFilter tags={viewTags} />}
+          </div>
           {view.kind === 'inbox' && (
             <p className="tabular mt-1 text-sm text-muted">{unsorted ? `${plural(unsorted, 'post')} waiting to be sorted` : 'Everything is sorted'}</p>
           )}
         </div>
         {searchable && (
-          <div className="flex w-full min-w-0 flex-wrap items-center justify-end gap-2 sm:w-auto sm:flex-nowrap">
-          {viewTags.length > 0 && <TagFilter tags={viewTags} />}
-          <label className="relative flex w-full shrink-0 items-center sm:w-72">
+          <label className="relative flex w-full items-center sm:w-72">
             <Search size={15} className="pointer-events-none absolute left-2.5 text-faint" />
             <input
               ref={searchRef}
@@ -240,7 +241,6 @@ function MainView({ posts, folders }: { posts: Post[]; folders: Folder[] }) {
             )}
             {!query && <kbd className="pointer-events-none absolute right-2 rounded border border-line px-1 font-mono text-[11px] text-faint">/</kbd>}
           </label>
-          </div>
         )}
       </header>
 
@@ -320,7 +320,7 @@ function TagFilter({ tags }: { tags: Tag[] }) {
   const picked = useUI((s) => s.tagFilter);
   const toggle = useUI((s) => s.toggleTagFilter);
   return (
-    <div className="flex min-w-0 flex-wrap items-center justify-end gap-2" role="group" aria-label="Filter by tag">
+    <div className="flex min-w-0 flex-wrap items-center gap-1.5" role="group" aria-label="Filter by tag">
       {tags.map((tag) => {
         const on = picked.includes(tag.id);
         return (
@@ -331,7 +331,7 @@ function TagFilter({ tags }: { tags: Tag[] }) {
             onClick={() => toggle(tag.id)}
             title={on ? `Stop filtering by ${tag.name}` : `Show only posts tagged ${tag.name}`}
             className={clsx(
-              'press inline-flex h-7 items-center rounded-full px-3 text-xs font-medium outline-none focus-visible:ring-2 focus-visible:ring-accent',
+              'press inline-flex h-6 items-center rounded-full px-2.5 text-[11px] font-medium outline-none focus-visible:ring-2 focus-visible:ring-accent',
               on ? 'text-white' : 'bg-surface text-muted hover:text-ink',
             )}
             style={on ? { background: tagColor(tag.color) } : undefined}
